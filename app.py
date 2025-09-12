@@ -238,10 +238,10 @@ header = dbc.Navbar(
             html.Div(
                 [
                     html.Span("💰", className="me-2"),
-                    dbc.NavbarBrand("Bank Loan Default Prediction", class_name="fw-bold", style={"color": "black"}),
+                    dbc.NavbarBrand("Bank Loan Default Prediction", class_name="fw-bold text-wrap", style={"color": "black"}),
                 ], className="d-flex align-items-center"
             ),
-            dbc.Badge("Interactive Dashboard", color="primary", className="ms-auto")
+            dbc.Badge("Dashboard", color="primary", className="ms-auto")
         ]
     ),
     color="light",
