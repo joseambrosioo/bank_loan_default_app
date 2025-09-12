@@ -324,9 +324,9 @@ analyze_tab = html.Div(
                             id="status-pie-chart",
                             figure=go.Figure(
                                 data=[go.Pie(labels=df_for_plotting["status"].value_counts().keys().tolist(),
-                                             values=df_for_plotting["status"].value_counts().values.tolist(),
-                                             marker=dict(colors=['#1f77b4', '#ff7f0e'], line=dict(color="white", width=1.3)),
-                                             hoverinfo="label+percent", hole=0.5)],
+                                            values=df_for_plotting["status"].value_counts().values.tolist(),
+                                            marker=dict(colors=['#1f77b4', '#ff7f0e'], line=dict(color="white", width=1.3)),
+                                            hoverinfo="label+percent", hole=0.5)],
                                 layout=go.Layout(title="Loan Default Distribution (0=No Default, 1=Default)", height=400, margin=dict(t=50, b=50))
                             )
                         ),
@@ -356,7 +356,7 @@ analyze_tab = html.Div(
                             )
                         ),
                         html.H5("The Importance of Specific Transaction Data", className="mt-4"),
-                        html.P("The plots you previously analyzed, like `total day minutes` vs `total evening minutes` in a telecom context, highlight the value of looking at specific, granular data. In our bank project, we've created similar granular features from the raw transaction data. For example, `avg_balance_before_loan` and `times_balance_below_5K` are far more informative than just looking at a client's total transaction amount. These features capture specific behaviors—like frequent overdrafts or low balances—that are strong indicators of a client's financial stability and, therefore, their likelihood to default. A simple 'total' metric would hide these crucial risk signals."),
+                        html.P("Our analysis highlights the value of focusing on **specific, granular data**. In this project, we created detailed features from raw transaction data, such as `avg_balance_before_loan` and `times_balance_below_5K`. These are much more informative than a client's simple total transaction amount because they capture specific behaviors—like frequent overdrafts or low balances—that are strong indicators of financial stability and the likelihood of default. A simple 'total' metric would hide these crucial risk signals, making it difficult to accurately predict a client's risk.")
                     ], className="p-4"
                 )
             ]),
