@@ -9,6 +9,7 @@ from sklearn import ensemble, tree, linear_model, svm
 from sklearn.metrics import classification_report, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+import dash_table # Added dash_table for the new component
 
 # --- FINAL Data Loading and Preprocessing ---
 def preprocess_data(
@@ -229,6 +230,9 @@ df, df_for_plotting = preprocess_data(
 # Train models
 trained_models, X_train, X_test, y_train, y_test, sc, X_orig, X_scaled_test = train_models(df)
 
+# Prepare columns for dash_table.DataTable
+columns_with_types = [{"name": i, "id": i, "type": "numeric" if pd.api.types.is_numeric_dtype(df[i]) else "text"} for i in df.columns]
+
 # --- Dashboard Setup ---
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
@@ -254,7 +258,7 @@ ask_tab = dcc.Markdown(
     ### ❓ **ASK** — The Business Question
     This section sets the stage by defining the core business problem.
 
-    **Business Task**: As a bank, we want to predict which loan applicants are at high risk of **defaulting** (failing to repay their loan). By identifying "good" versus "bad" clients, we can improve our loan approval process, manage risk more effectively, and proactively offer support to prevent defaults.
+    **Business Task**: As a bank, we want to predict which loan applicants are at high risk of **defaulting** (failing to repay their loan). By identifying "good" versus "bad" clients, we can improve our loan approval process, manage risk more effectively and proactively offer support to prevent defaults.
 
     **Stakeholders**: The primary users of this analysis are **Bank Managers**, **Risk Analysts**, and **Customer Service** teams. They need a clear, actionable way to understand who is most likely to default and why.
 
@@ -304,6 +308,30 @@ prepare_tab = html.Div(
             }),
             striped=True, bordered=True, hover=True
         ),
+        html.H4("Sample of the Prepared Data", className="mt-4"),
+        html.P("A sample of 10 rows from the final, merged dataset. You can sort and filter the columns to explore the data."),
+        dash_table.DataTable(
+            id='sample-table',
+            columns=columns_with_types,
+            data=df.head(10).to_dict('records'),
+            sort_action="native",
+            filter_action="native",
+            page_action="none",
+            style_table={'overflowX': 'auto', 'width': '100%'},
+            style_header={
+                'backgroundColor': 'rgb(230, 230, 230)',
+                'fontWeight': 'bold',
+                'textAlign': 'center',
+            },
+            style_cell={
+                'textAlign': 'left',
+                'padding': '5px',
+                'font-size': '12px',
+                'minWidth': '80px', 'width': 'auto', 'maxWidth': '150px',
+                'overflow': 'hidden',
+                'textOverflow': 'ellipsis',
+            },
+        ),
     ], className="p-4"
 )
 
@@ -324,9 +352,9 @@ analyze_tab = html.Div(
                             id="status-pie-chart",
                             figure=go.Figure(
                                 data=[go.Pie(labels=df_for_plotting["status"].value_counts().keys().tolist(),
-                                            values=df_for_plotting["status"].value_counts().values.tolist(),
-                                            marker=dict(colors=['#1f77b4', '#ff7f0e'], line=dict(color="white", width=1.3)),
-                                            hoverinfo="label+percent", hole=0.5)],
+                                             values=df_for_plotting["status"].value_counts().values.tolist(),
+                                             marker=dict(colors=['#1f77b4', '#ff7f0e'], line=dict(color="white", width=1.3)),
+                                             hoverinfo="label+percent", hole=0.5)],
                                 layout=go.Layout(title="Loan Default Distribution (0=No Default, 1=Default)", height=400, margin=dict(t=50, b=50))
                             )
                         ),
@@ -408,6 +436,10 @@ analyze_tab = html.Div(
                         html.H5("Feature Importance", className="mt-4"),
                         html.P("This plot ranks the features based on how much they contributed to the model's prediction. The two most important features were `avg_balance_before_loan` and `avg_amount_trans_before_loan`. This gives us a clear starting point for our recommendations."),
                         dcc.Graph(id="feature-importance-plot"),
+                        html.Hr(),
+                        html.H5("Receiver Operating Characteristic (ROC) Curve", className="mt-4"),
+                        html.P("The ROC curve plots the True Positive Rate against the False Positive Rate. The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The area under the curve (AUC) provides a single metric to summarize the model's performance."),
+                        dcc.Graph(id="roc-curve-plot"),
                     ], className="p-4"
                 )
             ])
@@ -449,6 +481,7 @@ app.layout = dbc.Container(
     Output("confusion-matrix-plot", "figure"),
     Output("classification-report-text", "children"),
     Output("feature-importance-plot", "figure"),
+    Output("roc-curve-plot", "figure"),
     Input('model-dropdown', 'value')
 )
 def update_metrics_and_importance(selected_model):
@@ -494,8 +527,29 @@ def update_metrics_and_importance(selected_model):
     else:
         fig_fi.update_layout(title=f"Feature Importance Not Available for {selected_model}")
         
-    return fig_cm, report, fig_fi
+    # 4. New ROC Curve Plot
+    fig_roc = go.Figure()
+    if hasattr(model, 'predict_proba'):
+        y_pred_proba = model.predict_proba(X_test_for_pred)[:, 1]
+        fpr, tpr, _ = metrics.roc_curve(y_test, y_pred_proba)
+        roc_auc = metrics.auc(fpr, tpr)
+        
+        fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name=f'{selected_model} (AUC = {roc_auc:.2f})'))
+        fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='Random Guess (AUC = 0.5)', line=dict(dash='dash', color='gray')))
+        fig_roc.update_layout(
+            title="ROC Curve",
+            xaxis_title="False Positive Rate",
+            yaxis_title="True Positive Rate",
+            height=450,
+            margin=dict(t=50, b=50),
+            legend=dict(x=0.6, y=0.1)
+        )
+    else:
+        fig_roc.update_layout(title=f"ROC Curve Not Available for {selected_model}")
 
+    # No more correlation matrix to return
+    return fig_cm, report, fig_fi, fig_roc
+    
 # Run the app
 if __name__ == "__main__":
     app.run(debug=True)
