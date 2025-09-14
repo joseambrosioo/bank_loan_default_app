@@ -353,7 +353,7 @@ analyze_tab = html.Div(
                             # ["The pie chart below shows that our data is ", html.B("imbalanced"), "—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients. The pie chart below shows the breakdown of your target variable, `status`. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the next section."]
                             ["The pie chart below shows that our data is ", html.B("imbalanced"), 
 "—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), 
-". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the next section."]
+". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the 'Model Performance' section."]
 
                         ),
                         dcc.Graph(
@@ -368,7 +368,7 @@ analyze_tab = html.Div(
                         ),
                         html.H5("Default Rate by Age Group", className="mt-4"),
                         html.P(
-                            ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age groups are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the **45-50 age group is most prone to default**, with a slightly higher percentage of defaults compared to other age groups."]
+                            ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age groups are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the", html.B(" 45-50 age group is most prone to default "), "with a slightly higher percentage of defaults compared to other age groups."]
                         ),
                         dcc.Graph(
                             id="age-default-plot",
@@ -412,11 +412,11 @@ analyze_tab = html.Div(
                             className="mb-2"
                         ),
                         html.P(
-                            ["• ", html.B("Precision:"), " Think of Precision as the cost of a false alarm 🚨. If your model has high precision, the people it flags for follow-up are very likely to be actual defaulters. Of the clients we predicted would default, how many actually did? High precision is good to avoid false alarms."],
+                            ["• ", html.B("Precision:"), " Think of Precision as the cost of a false alarm. If your model has high precision, the people it flags for follow-up are very likely to be actual defaulters. Of the clients we predicted would default, how many actually did? High precision is good to avoid false alarms."],
                             className="mb-1"
                         ),
                         html.P(
-                            ["• ", html.B("Recall:"), " Think of Recall as the cost of a missed warning 🤫. If your model has high recall, it's very good at finding most of the people who will default, so you don't miss a high-risk client. Of all the clients who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk clients as possible."],
+                            ["• ", html.B("Recall:"), " Think of Recall as the cost of a missed warning. If your model has high recall, it's very good at finding most of the people who will default, so you don't miss a high-risk client. Of all the clients who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk clients as possible."],
                             className="mb-1"
                         ),
                         html.P(
@@ -584,7 +584,14 @@ def update_metrics_and_importance(selected_model):
         
         # Add dynamic text about model performance
         if roc_auc > 0.8:
-            roc_description_list.append(html.P("This model appears to be a **good classifier** with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc)))
+            # roc_description_list.append(html.P("This model appears to be a", html.B(" good classifier "), "with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc)))
+            roc_description_list.append(
+                html.P([
+                    "This model appears to be a ",
+                    html.B("good classifier"),
+                    f" with an AUC of {roc_auc:.2f}, indicating it is much better than a coin flip at separating the two groups."
+                ])
+            )
         elif roc_auc > 0.6:
             roc_description_list.append(html.P("This model's AUC of {:.2f} suggests it has **moderate predictive power**, performing better than a random guess but with room for improvement.".format(roc_auc)))
         else:
