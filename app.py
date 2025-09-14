@@ -10,225 +10,20 @@ from sklearn.metrics import classification_report, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import dash_table
+import joblib
 
-# --- FINAL Data Loading and Preprocessing ---
-def preprocess_data(
-    card_path, account_path, disp_path, client_path, district_path, order_path, loan_path, trans_path
-):
-    # --- CARD ---
-    card = pd.read_csv(card_path, sep=";", low_memory=False)
-    card.issued = card.issued.str.strip("00:00:00")
-    card.type = card.type.map({"gold": 2, "classic": 1, "junior": 0})
+# Import the new model trainer class
+from model_trainer import LoanModelTrainer
 
-    # --- ACCOUNT ---
-    account = pd.read_csv(account_path, sep=";")
-    account.date = account.date.apply(lambda x: pd.to_datetime(str(x), format="%y%m%d"))
-
-    # --- DISP ---
-    disp = pd.read_csv(disp_path, sep=";", low_memory=False)
-    disp = disp[disp.type == "OWNER"]
-    disp.rename(columns={"type": "type_disp"}, inplace=True)
-
-    # --- CLIENT ---
-    client = pd.read_csv(client_path, sep=";", low_memory=False)
-    client["month"] = client.birth_number.apply(lambda x: x // 100 % 100)
-    client["year"] = client.birth_number.apply(lambda x: x // 100 // 100)
-    client["age"] = 99 - client.year
-    client["sex"] = client.month.apply(lambda x: (x - 50) < 0).astype(int)
-    client.drop(["birth_number", "month", "year"], axis=1, inplace=True)
-
-    # --- DISTRICT ---
-    district = pd.read_csv(district_path, sep=";", low_memory=False)
-    district.drop(["A2", "A3"], axis=1, inplace=True)
-
-    # --- ORDER ---
-    order = pd.read_csv(order_path, sep=";", low_memory=False)
-    order.drop(["bank_to", "account_to", "order_id"], axis=1, inplace=True)
-    order.k_symbol = order.k_symbol.fillna("No_symbol").str.replace(" ", "No_symbol")
-    order = order.groupby(["account_id", "k_symbol"]).mean().unstack().fillna(0)
-    order.columns = order.columns.droplevel()
-    order.reset_index(level="account_id", col_level=1, inplace=True)
-    order.rename_axis("", axis="columns", inplace=True)
-    order.rename(
-        columns={
-            "LEASING": "order_amount_LEASING",
-            "No_symbol": "order_amount_No_symbol",
-            "POJISTNE": "order_amount_POJISTNE",
-            "SIPO": "order_amount_SIPO",
-            "UVER": "order_amount_UVER",
-        },
-        inplace=True,
-    )
-
-    # --- LOAN ---
-    loan = pd.read_csv(loan_path, sep=";", low_memory=False)
-    loan.date = loan.date.apply(lambda x: pd.to_datetime(str(x), format="%y%m%d"))
-
-    # --- TRANS ---
-    trans = pd.read_csv(trans_path, sep=";", low_memory=False)
-    trans.loc[trans.k_symbol.isin(["", " "]), "k_symbol"] = "k_symbol_missing"
-    loan_account_id = loan.loc[:, ["account_id"]]
-    trans = loan_account_id.merge(trans, how="left", on="account_id")
-    trans.date = trans.date.apply(lambda x: pd.to_datetime(str(x), format="%y%m%d"))
-
-    trans_pv_k_symbol = trans.pivot_table(
-        values=["amount", "balance"], index=["trans_id"], columns="k_symbol"
-    ).fillna(0)
-    trans_pv_k_symbol.columns = ["_".join(col) for col in trans_pv_k_symbol.columns]
-    trans_pv_k_symbol = trans_pv_k_symbol.reset_index()
-    trans_pv_k_symbol = trans.iloc[:, :3].merge(trans_pv_k_symbol, how="left", on="trans_id")
-
-    # --- LOAN-TRANS MERGE ---
-    get_date_loan_trans = pd.merge(
-        loan, account, how="left", on="account_id", suffixes=("_loan", "_account")
-    )
-    get_date_loan_trans = pd.merge(
-        get_date_loan_trans, trans, how="left", on="account_id", suffixes=("_account", "_trans")
-    )
-    get_date_loan_trans["date_loan_trans"] = (get_date_loan_trans["date_loan"] - get_date_loan_trans["date"]).dt.days
-    temp_before = get_date_loan_trans[get_date_loan_trans["date_loan_trans"] >= 0]
-
-    # --- FEATURE ENGINEERING ---
-    temp_90_mean = (
-        temp_before[temp_before["date_loan_trans"] < 90]
-        .groupby("loan_id", as_index=False)["balance"]
-        .mean()
-        .rename(columns={"balance": "avg_balance_3M_before_loan"})
-    )
-    
-    df = loan.merge(temp_90_mean, how="left", on="loan_id") \
-             .merge(temp_before[temp_before["date_loan_trans"] < 30].groupby("loan_id", as_index=False)["balance"].mean().rename(columns={"balance": "avg_balance_1M_before_loan"}), how="left", on="loan_id") \
-             .merge(temp_before.loc[:, ["loan_id", "trans_id"]].groupby("loan_id", as_index=False).count().rename(columns={"trans_id": "trans_freq"}), how="left", on="loan_id") \
-             .merge(temp_before.groupby("loan_id", as_index=False)["balance"].min().rename(columns={"balance": "min_balance_before_loan"}), how="left", on="loan_id") \
-             .merge(temp_before.groupby("loan_id", as_index=False)[["amount_trans", "balance"]].mean().rename(columns={"amount_trans": "avg_amount_trans_before_loan", "balance": "avg_balance_before_loan"}), how="left", on="loan_id") \
-             .merge(temp_before[temp_before["balance"] < 500].groupby("loan_id").size().reset_index(name="times_balance_below_500"), how="left", on="loan_id") \
-             .merge(temp_before[temp_before["balance"] < 5000].groupby("loan_id").size().reset_index(name="times_balance_below_5K"), how="left", on="loan_id")
-
-    df = df.merge(account, how="left", on="account_id", suffixes=("_loan", "_account"))
-    df = df.merge(order, how="left", on="account_id")
-    df = df.merge(disp, how="left", on="account_id")
-    df = df.merge(card, how="left", on="disp_id")
-    df = df.merge(client, how="left", on="client_id")
-
-    # --- FIXED DISTRICT MERGE ---
-    district_col = None
-    for col in df.columns:
-        if "district_id" in col:
-            district_col = col
-            break
-    if district_col:
-        df = df.merge(district, how="left", left_on=district_col, right_on="A1")
-    else:
-        raise KeyError("No district_id column found in df to merge with district table")
-
-    trans_pv_k_symbol = trans_pv_k_symbol.groupby("account_id", as_index=False).mean()
-    df = df.merge(trans_pv_k_symbol, how="left", on="account_id")
-
-    # Handle the target variable `status` first
-    df.status = df.status.map({"A": 0, "B": 1, "C": 0, "D": 1})
-
-    # --- CLEANING AND FEATURE ENGINEERING ---
-    df["years_of_loan"] = 1999 - df.date_loan.dt.year
-    df["years_of_account"] = 1999 - df.date_account.dt.year
-
-    # Map frequency
-    df.frequency = df.frequency.map({"POPLATEK MESICNE": 30, "POPLATEK TYDNE": 7, "POPLATEK PO OBRATU": 1})
-
-    # Fix chained assignment warning
-    df.loc[:, "issued"] = df["issued"].fillna("999999")
-    df["years_card_issued"] = df.issued.apply(lambda x: (99 - int(str(x)[:2])))
-
-    # Define all columns to be dropped
-    columns_to_drop = [
-        "date_loan", "date_account", "type_disp", "issued", "A12", "A15",
-        "loan_id", "account_id", "district_id", "disp_id",
-        "client_id", "card_id", "A1", "date_loan_trans",
-        "operation", "type_x", "bank", "account",
-        "type_y", "k_symbol", "date_trans", "trans_id"
-    ]
-    df.drop(columns=columns_to_drop, axis=1, inplace=True, errors='ignore')
-
-    # Drop any remaining datetime columns
-    for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-            print(f"Dropping datetime column: {col}")
-            df.drop(columns=[col], inplace=True, errors='ignore')
-    
-    # Fill remaining numerical NaNs with 0
-    df.fillna(0, inplace=True)
-
-    # Binning age and creating a copy for plotting BEFORE get_dummies
-    cut_points = [24, 34, 44, 50]
-    labels = ["20-24", "25-34", "35-44", "45-50", "50+"]
-    
-    # Fill any NaNs in the 'age' column first to prevent issues with pd.cut
-    df['age'] = df['age'].fillna(df['age'].mean())
-    df["age_bin"] = pd.cut(df["age"], bins=[df["age"].min()] + cut_points + [df["age"].max()], labels=labels, include_lowest=True)
-
-    # Make a copy of the DataFrame for plotting before dropping/converting columns
-    df_for_plotting = df.copy()
-
-    # Get dummies for the age_bin for the model training
-    df = pd.get_dummies(df, columns=["age_bin"], drop_first=True, dtype=int)
-
-    # Handle remaining object columns with get_dummies, ensuring NaNs are filled first
-    for col in df.columns:
-        if df[col].dtype == 'object':
-            df[col] = df[col].fillna('unknown')
-            try:
-                if df[col].nunique() > 1:
-                    df = pd.get_dummies(df, columns=[col], drop_first=True, dtype=int)
-                else:
-                    print(f"Dropping single-valued object column: {col}")
-                    df.drop(columns=[col], inplace=True, errors='ignore')
-            except Exception as e:
-                print(f"Dropping problematic object column: {col} due to: {e}")
-                df.drop(columns=[col], inplace=True, errors='ignore')
-
-    return df, df_for_plotting
-
-# --- Model Training ---
-def train_models(df):
-    X = df.loc[:, df.columns != "status"]
-    y = df.loc[:, "status"]
-    
-    # Standardize numerical features for certain models
-    sc = StandardScaler()
-    X_scaled = X.copy()
-    numeric_cols = X_scaled.select_dtypes(include=np.number).columns.tolist()
-    X_scaled[numeric_cols] = sc.fit_transform(X_scaled[numeric_cols])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    X_scaled_train, X_scaled_test, _, _ = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
-    
-    models = {
-        'Random Forest': ensemble.RandomForestClassifier(n_estimators=200, random_state=42),
-        'Decision Tree': tree.DecisionTreeClassifier(max_depth=5, random_state=42),
-        'Gradient Boosting': ensemble.GradientBoostingClassifier(n_estimators=200, random_state=42),
-        'SVM': svm.SVC(C=5, kernel="rbf", random_state=42, probability=True),
-        'Logistic Regression': linear_model.LogisticRegression(penalty="l1", C=1, solver='liblinear', random_state=42),
-    }
-    
-    trained_models = {}
-    for name, model in models.items():
-        if name in ['SVM', 'Logistic Regression']:
-            model.fit(X_scaled_train, y_train)
-            trained_models[name] = model
-        else:
-            model.fit(X_train, y_train)
-            trained_models[name] = model
-            
-    return trained_models, X_train, X_test, y_train, y_test, sc, X, X_scaled_test
-
-# Load and process data from the 'dataset' subfolder
-df, df_for_plotting = preprocess_data(
+# --- Data Loading and Model Training ---
+# Instantiate and run the trainer class
+trainer = LoanModelTrainer(
     "dataset/card.asc", "dataset/account.asc", "dataset/disp.asc", 
     "dataset/client.asc", "dataset/district.asc", "dataset/order.asc", 
     "dataset/loan.asc", "dataset/trans.asc"
 )
+(trained_models, X_train, X_test, y_train, y_test, sc, X_orig, X_scaled_test, df, df_for_plotting) = trainer.train_and_save_models()
 
-# Train models
-trained_models, X_train, X_test, y_train, y_test, sc, X_orig, X_scaled_test = train_models(df)
 
 # Prepare columns for dash_table.DataTable
 columns_with_types = [{"name": i, "id": i, "type": "numeric" if pd.api.types.is_numeric_dtype(df[i]) else "text"} for i in df.columns]
@@ -352,11 +147,9 @@ analyze_tab = html.Div(
                         ),
                         html.H5("Default Distribution", className="mt-4"),
                         html.P(
-                            # ["The pie chart below shows that our data is ", html.B("imbalanced"), "—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients. The pie chart below shows the breakdown of our target variable, `status`. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why we can't rely on accuracy alone and need more robust metrics, which we'll find in the next section."]
                             ["The pie chart below shows that our data is ", html.B("imbalanced"), 
 "—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients. We're not just looking at the percentages; we're seeing a critical business problem: ", html.B("class imbalance"), 
 ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why we can't rely on accuracy alone and need more robust metrics, which we'll find in the 'Model Performance' section."]
-
                         ),
                         dcc.Graph(
                             id="status-pie-chart",
