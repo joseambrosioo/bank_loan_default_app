@@ -9,7 +9,7 @@ from sklearn import ensemble, tree, linear_model, svm
 from sklearn.metrics import classification_report, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import dash_table # Added dash_table for the new component
+import dash_table
 
 # --- FINAL Data Loading and Preprocessing ---
 def preprocess_data(
@@ -338,14 +338,19 @@ prepare_tab = html.Div(
 analyze_tab = html.Div(
     children=[
         html.H4(["📈 ", html.B("ANALYZE"), " — Finding Patterns and Building Models"], className="mt-4"),
-        html.P("Here, we explore the data and train machine learning models to predict loan default."),
+        html.P(
+            ["The Analyze tab is where you turn your prepared data into actionable insights and evaluate the effectiveness of your machine learning models. It's split into two key sub-tabs: ", html.B("Exploratory Data Analysis (EDA)"), " and ", html.B("Model Performance"), "."]
+        ),
         dbc.Tabs([
             dbc.Tab(label="Exploratory Data Analysis", children=[
                 html.Div(
                     children=[
+                        html.P(
+                            ["The EDA section helps you understand your data's key characteristics before you start modeling. It's like checking the ingredients before you cook."]
+                        ),
                         html.H5("Default Distribution", className="mt-4"),
                         html.P(
-                            ["The pie chart below shows that our data is ", html.B("imbalanced"), "—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients."]
+                            ["The pie chart below shows the breakdown of our target variable, `status`. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the next section."]
                         ),
                         dcc.Graph(
                             id="status-pie-chart",
@@ -358,7 +363,9 @@ analyze_tab = html.Div(
                             )
                         ),
                         html.H5("Default Rate by Age Group", className="mt-4"),
-                        html.P("This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age groups are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar."),
+                        html.P(
+                            ["This stacked bar chart visualizes the relationship between a client's age and their likelihood of default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the **45-50 age group is most prone to default**, with a slightly higher percentage of defaults compared to other age groups."]
+                        ),
                         dcc.Graph(
                             id="age-default-plot",
                             figure=go.Figure(
@@ -392,26 +399,40 @@ analyze_tab = html.Div(
             dbc.Tab(label="Model Performance", children=[
                 html.Div(
                     children=[
+                        html.P(
+                            ["This section is all about evaluating your models to pick the best one for the job. You're not just looking for a 'high score' but for a model that's genuinely good at catching high-risk clients."]
+                        ),
                         html.H5("Model Performance Metrics", className="mt-4"),
                         html.P(
                             ["To truly evaluate our models, we focus on several key metrics beyond simple accuracy:"],
                             className="mb-2"
                         ),
                         html.P(
-                            ["• ", html.B("Precision:"), " Of the clients we predicted would default, how many actually did? High precision is good to avoid false alarms."],
+                            ["• ", html.B("Precision:"), " Think of Precision as the cost of a false alarm 🚨. If your model has high precision, the people it flags for follow-up are very likely to be actual defaulters. Of the clients we predicted would default, how many actually did? High precision is good to avoid false alarms."],
                             className="mb-1"
                         ),
                         html.P(
-                            ["• ", html.B("Recall:"), " Of all the clients who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk clients as possible."],
+                            ["• ", html.B("Recall:"), " Think of Recall as the cost of a missed warning 🤫. If your model has high recall, it's very good at finding most of the people who will default, so you don't miss a high-risk client. Of all the clients who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk clients as possible."],
                             className="mb-1"
                         ),
                         html.P(
-                            ["• ", html.B("F1-Score:"), " A balance between precision and recall, providing a single metric to compare models."],
+                            ["• ", html.B("F1-Score:"), " A balance between precision and recall, providing a single metric to compare models. This is the harmonic mean of precision and recall. It's a single number that helps you compare models when both precision and recall are important."],
                             className="mb-1"
                         ),
                         html.P(
-                            ["• ", html.B("ROC-AUC:"), " Measures how well the model separates the two classes (defaulters vs. non-defaulters). A score closer to 1.0 is better."],
+                            ["• ", html.B("ROC-AUC:"), " This is a powerful summary metric. It measures the model's ability to distinguish between the two classes (defaulters vs. non-defaulters). A score closer to 1.0 is better."],
                             className="mb-1"
+                        ),
+                        html.H6("Confusion Matrix", className="mt-4"),
+                        html.P(
+                            ["The confusion matrix is a table that breaks down your model's predictions into four categories:", 
+                             html.Ul([
+                                 html.Li([html.B("True Positives (TP):"), " Correctly predicted defaulters."]),
+                                 html.Li([html.B("True Negatives (TN):"), " Correctly predicted non-defaulters."]),
+                                 html.Li([html.B("False Positives (FP):"), " Incorrectly predicted defaulters (Type I error). These are the 'false alarms.'"]),
+                                 html.Li([html.B("False Negatives (FN):"), " Incorrectly predicted non-defaulters (Type II error). These are the 'missed warnings' that a bank wants to avoid at all costs, as they represent a potential financial loss."])
+                             ])
+                            ]
                         ),
                         dbc.Row([
                             dbc.Col(
@@ -436,7 +457,7 @@ analyze_tab = html.Div(
                         html.Hr(),
                         html.H5("Feature Importance", className="mt-4"),
                         html.P(
-                            ["This plot ranks the features based on how much they contributed to the model's prediction. The two most important features were ", html.B("`avg_balance_before_loan`"), " and ", html.B("`avg_amount_trans_before_loan`"), ". This gives us a clear starting point for our recommendations."]
+                            ["This bar chart shows you which features the selected model relied on most heavily to make its predictions. You're seeing the model's 'thinking process.' The longer the bar, the more influential that feature was. In this case, the two most important features were ", html.B("`avg_balance_before_loan`"), " and ", html.B("`avg_amount_trans_before_loan`"), ". This is a critical insight because it validates the data preparation process—your work in feature engineering paid off by creating meaningful signals for the model."]
                         ),
                         dcc.Graph(id="feature-importance-plot"),
                         html.Hr(),
@@ -485,7 +506,7 @@ app.layout = dbc.Container(
     Output("classification-report-text", "children"),
     Output("feature-importance-plot", "figure"),
     Output("roc-curve-plot", "figure"),
-    Output("roc-curve-description", "children"), # New output for dynamic description
+    Output("roc-curve-description", "children"),
     Input('model-dropdown', 'value')
 )
 def update_metrics_and_importance(selected_model):
@@ -533,7 +554,7 @@ def update_metrics_and_importance(selected_model):
         
     # 4. New ROC Curve Plot and Description
     fig_roc = go.Figure()
-    roc_description = []
+    roc_description_list = []
     if hasattr(model, 'predict_proba'):
         y_pred_proba = model.predict_proba(X_test_for_pred)[:, 1]
         fpr, tpr, _ = metrics.roc_curve(y_test, y_pred_proba)
@@ -550,23 +571,26 @@ def update_metrics_and_importance(selected_model):
             legend=dict(x=0.6, y=0.1)
         )
         
-        # Dynamic description for ROC Curve
-        roc_description.append("The ROC curve plots the True Positive Rate against the False Positive Rate. The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The Area Under the Curve (AUC) provides a single metric to summarize the model's performance. The plot you're seeing shows the trade-off for each model between finding actual defaulters (True Positive Rate) and incorrectly flagging non-defaulters as high-risk (False Positive Rate). ")
+        # Merged the old and new text
+        roc_description_list.append(
+            html.P(
+                ["The ROC curve plots the ", html.B("True Positive Rate"), " against the ", html.B("False Positive Rate"), ". The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The Area Under the Curve (AUC) provides a single metric to summarize the model's performance. The plot you're seeing shows the trade-off for each model between finding actual defaulters (True Positive Rate) and incorrectly flagging non-defaulters as high-risk (False Positive Rate). A good model will have a curve that bows out towards the top-left corner, staying well above the diagonal 'random guess' line, indicating it is much better than a coin flip at separating the two groups."]
+            )
+        )
         
         # Add dynamic text about model performance
         if roc_auc > 0.8:
-            roc_description.append("This model appears to be a **good classifier** with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc))
+            roc_description_list.append(html.P("This model appears to be a **good classifier** with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc)))
         elif roc_auc > 0.6:
-            roc_description.append("This model's AUC of {:.2f} suggests it has **moderate predictive power**, performing better than a random guess but with room for improvement.".format(roc_auc))
+            roc_description_list.append(html.P("This model's AUC of {:.2f} suggests it has **moderate predictive power**, performing better than a random guess but with room for improvement.".format(roc_auc)))
         else:
-            roc_description.append("With an AUC of {:.2f}, this model's performance is **closer to a random guess**. It may not be reliable for identifying at-risk clients.".format(roc_auc))
+            roc_description_list.append(html.P("With an AUC of {:.2f}, this model's performance is **closer to a random guess**. It may not be reliable for identifying at-risk clients.".format(roc_auc)))
 
     else:
         fig_roc.update_layout(title=f"ROC Curve Not Available for {selected_model}")
-        roc_description.append("The ROC curve is not available for this model as it does not support probability predictions.")
+        roc_description_list.append(html.P("The ROC curve is not available for this model as it does not support probability predictions."))
 
-    # Return the new output
-    return fig_cm, report, fig_fi, fig_roc, html.P(roc_description)
+    return fig_cm, report, fig_fi, fig_roc, roc_description_list
     
 # Run the app
 if __name__ == "__main__":
