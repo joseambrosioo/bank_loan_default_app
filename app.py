@@ -520,12 +520,32 @@ def update_metrics_and_importance(selected_model):
     
     # 1. Confusion Matrix Plot
     cm = confusion_matrix(y_test, y_pred)
+
+    # Reorder for TP-FP / FN-TN layout
+    z_data = np.array([
+        [cm[1, 1], cm[0, 1]],  # TP, FP
+        [cm[1, 0], cm[0, 0]]   # FN, TN
+    ])
+
+    cm_text = np.array([
+        [f'TP: {cm[1, 1]}', f'FP: {cm[0, 1]}'],
+        [f'FN: {cm[1, 0]}', f'TN: {cm[0, 0]}']
+    ])
+
+    # Flip rows for correct top-to-bottom display
+    z_data = np.flipud(z_data)
+    cm_text = np.flipud(cm_text)
+
     fig_cm = ff.create_annotated_heatmap(
-        z=cm, x=["No Default (0)", "Default (1)"], y=["No Default (0)", "Default (1)"],
-        colorscale='blues'
+        z=z_data,
+        x=["Default (1)", "No Default (0)"],
+        y=["Default (1)", "No Default (0)"],
+        annotation_text=cm_text,
+        colorscale='Blues'
     )
+
     fig_cm.update_layout(title=f"Confusion Matrix ({selected_model})", height=450, margin=dict(t=50, b=50))
-    
+
     # 2. Classification Report
     report = classification_report(y_test, y_pred, output_dict=False, zero_division=0)
     
