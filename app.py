@@ -235,6 +235,8 @@ columns_with_types = [{"name": i, "id": i, "type": "numeric" if pd.api.types.is_
 
 # --- Dashboard Setup ---
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+app.title = "Bank Loan Default Prediction"
+server = app.server
 
 header = dbc.Navbar(
     dbc.Container(
@@ -417,7 +419,7 @@ analyze_tab = html.Div(
                             ])
                             ]
                         ),
-                        html.P(["The ", html.B("Gradient Boosting"), " model demonstrates the best overall performance in identifying loan defaulters. It achieved an exceptional ", html.B("Precision"), " of ", html.B("0.86"), ", meaning that when it predicted a client would default, it was correct 86% of the time. Its ", html.B("Recall"), " was a perfect ", html.B("1.00"), ", successfully identifying every single one of the actual defaulters. This led to an outstanding ", html.B("F1-Score"), " of ", html.B("0.93"), " and an ", html.B("AUC"), " of ", html.B("0.99"), ", indicating it has an almost perfect ability to distinguish between the two classes. The model's low number of false negatives (0) is a critical business success, as it avoids missing any high-risk clients, which would result in significant financial loss for the bank."]),
+                        html.P(["The ", html.B("Random Forest"), " model demonstrates the best overall performance in identifying loan defaulters. It achieved an exceptional ", html.B("Precision"), " of ", html.B("0.95"), ", meaning that when it predicted a client would default, it was ", html.B("correct 95% of the time"), ". Its ", html.B("Recall"), " was ", html.B("0.91"), ", successfully identifying every single one of the actual defaulters. This led to an outstanding ", html.B("F1-Score"), " of ", html.B("0.93"), " and an ", html.B("AUC"), " of ", html.B("0.99"), ", indicating it has an almost perfect ability to distinguish between the two classes (defaulters and non-defaulters). The model's low number of false negatives is a critical business success, as it avoids missing any high-risk clients, which would result in significant financial loss for the bank."]),
 
                         html.H6("Confusion Matrix", className="mt-4"),
                         html.P(
@@ -569,26 +571,26 @@ def update_metrics_and_importance(selected_model):
         
         # Merged the old and new text
         roc_description_list.extend([
-            html.P(
-                ["The ROC curve plots the ", html.B("True Positive Rate"), " against the ", html.B("False Positive Rate"), ". The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The Area Under the Curve (AUC) provides a single metric to summarize the model's performance. The plot you're seeing shows the trade-off for each model between finding actual defaulters (True Positive Rate) and incorrectly flagging non-defaulters as high-risk (False Positive Rate). A good model will have a curve that bows out towards the top-left corner, staying well above the diagonal 'random guess' line, indicating it is much better than a coin flip at separating the two groups."]
-            ),
-            html.P(["The ", html.B("Gradient Boosting"), " model has the best ROC curve, with an ", html.B("AUC"), " of ", html.B("0.99"), ", demonstrating its superior ability to differentiate between clients who will and will not default. The ", html.B("Logistic Regression"), " model also performs well with an ", html.B("AUC"), " of ", html.B("0.95"), ", while the ", html.B("Random Forest"), " and ", html.B("Decision Tree"), " models have a lower ", html.B("AUC"), " of ", html.B("0.92"), " and ", html.B("0.91"), ", respectively. The ", html.B("SVM"), " model has an ", html.B("AUC"), " of ", html.B("0.86"), ", performing the worst among the models. This confirms that ", html.B("Gradient Boosting"), " is the most reliable model for this classification task."])
+            html.P(["The ROC curve plots the ", html.B("True Positive Rate"), " against the ", html.B("False Positive Rate"), ". The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The Area Under the Curve (AUC) provides a single metric to summarize the model's performance. The plot you're seeing shows the trade-off for each model between finding actual defaulters (True Positive Rate) and incorrectly flagging non-defaulters as high-risk (False Positive Rate). A good model will have a curve that bows out towards the top-left corner, staying well above the diagonal 'random guess' line, indicating it is much better than a coin flip at separating the two groups."]),
+            # html.P(["The ", html.B("Gradient Boosting"), " model has the best ROC curve, with an ", html.B("AUC"), " of ", html.B("0.99"), ", demonstrating its superior ability to differentiate between clients who will and will not default. The ", html.B("Logistic Regression"), " model also performs well with an ", html.B("AUC"), " of ", html.B("0.95"), ", while the ", html.B("Random Forest"), " and ", html.B("Decision Tree"), " models have a lower ", html.B("AUC"), " of ", html.B("0.92"), " and ", html.B("0.91"), ", respectively. The ", html.B("SVM"), " model has an ", html.B("AUC"), " of ", html.B("0.86"), ", performing the worst among the models. This confirms that ", html.B("Gradient Boosting"), " is the most reliable model for this classification task."]),
+            html.P(["The ", html.B("Random Forest"), " model has the best ROC curve, with an ", html.B("AUC"), " of ", html.B("0.99"), ", demonstrating its superior ability to differentiate between clients who will and will not default. The ", html.B("Gradient Boosting"), " model also performs well with an ", html.B("AUC"), " of ", html.B("0.98"), ", while the ", html.B("SVM"), " and ", html.B("Logistic Regression"), " models have a lower ", html.B("AUC"), " of ", html.B("0.95"), " and ", html.B("0.93"), ", respectively. The ", html.B("Decision Tree"), " model has an ", html.B("AUC"), " of ", html.B("0.91"), ", performing slightly worse among the top models. This confirms that ", html.B("Random Forest"), " is the most reliable model for this classification task."]),
+            html.P(["The currently selected model ", html.B(selected_model), " has an ", html.B("AUC"), " of ", html.B(f"{roc_auc:.2f}.")])
         ])
-        
-        # Add dynamic text about model performance
-        if roc_auc > 0.8:
-            # roc_description_list.append(html.P("This model appears to be a", html.B(" good classifier "), "with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc)))
-            roc_description_list.append(
-                html.P([
-                    "This model appears to be a ",
-                    html.B("good classifier"),
-                    f" with an AUC of {roc_auc:.2f}, indicating it is much better than a coin flip at separating the two groups."
-                ])
-            )
-        elif roc_auc > 0.6:
-            roc_description_list.append(html.P("This model's AUC of {:.2f} suggests it has **moderate predictive power**, performing better than a random guess but with room for improvement.".format(roc_auc)))
-        else:
-            roc_description_list.append(html.P("With an AUC of {:.2f}, this model's performance is **closer to a random guess**. It may not be reliable for identifying at-risk clients.".format(roc_auc)))
+
+        # # Add dynamic text about model performance
+        # if roc_auc > 0.8:
+        #     # roc_description_list.append(html.P("This model appears to be a", html.B(" good classifier "), "with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc)))
+        #     roc_description_list.append(
+        #         html.P([
+        #             "This model appears to be a ",
+        #             html.B("good classifier"),
+        #             f" with an AUC of {roc_auc:.2f}, indicating it is much better than a coin flip at separating the two groups."
+        #         ])
+        #     )
+        # elif roc_auc > 0.6:
+        #     roc_description_list.append(html.P("This model's AUC of {:.2f} suggests it has **moderate predictive power**, performing better than a random guess but with room for improvement.".format(roc_auc)))
+        # else:
+        #     roc_description_list.append(html.P("With an AUC of {:.2f}, this model's performance is **closer to a random guess**. It may not be reliable for identifying at-risk clients.".format(roc_auc)))
 
     else:
         fig_roc.update_layout(title=f"ROC Curve Not Available for {selected_model}")
