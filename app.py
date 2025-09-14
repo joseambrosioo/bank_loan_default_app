@@ -368,7 +368,7 @@ analyze_tab = html.Div(
                         ),
                         html.H5("Default Rate by Age Group", className="mt-4"),
                         html.P(
-                            ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age groups are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the", html.B(" 45-50 age group is most prone to default "), "with a slightly higher percentage of defaults compared to other age groups."]
+                            ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age groups are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the ", html.B("45-50 age group is most prone to default"), ", with a slightly higher percentage of defaults compared to other age groups."]
                         ),
                         dcc.Graph(
                             id="age-default-plot",
