@@ -350,7 +350,11 @@ analyze_tab = html.Div(
                         ),
                         html.H5("Default Distribution", className="mt-4"),
                         html.P(
-                            ["The pie chart below shows the breakdown of our target variable, `status`. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the next section."]
+                            # ["The pie chart below shows that our data is ", html.B("imbalanced"), "—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients. The pie chart below shows the breakdown of your target variable, `status`. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the next section."]
+                            ["The pie chart below shows that our data is ", html.B("imbalanced"), 
+"—a small percentage of customers actually defaulted. This is common in banking data and is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate, but it would be useless for identifying at-risk clients. You're not just looking at the percentages; you're seeing a critical business problem: ", html.B("class imbalance"), 
+". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means that a model can achieve high accuracy simply by predicting 'No Default' every time. This is why you can't rely on accuracy alone and need more robust metrics, which you'll find in the next section."]
+
                         ),
                         dcc.Graph(
                             id="status-pie-chart",
@@ -364,7 +368,7 @@ analyze_tab = html.Div(
                         ),
                         html.H5("Default Rate by Age Group", className="mt-4"),
                         html.P(
-                            ["This stacked bar chart visualizes the relationship between a client's age and their likelihood of default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the **45-50 age group is most prone to default**, with a slightly higher percentage of defaults compared to other age groups."]
+                            ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age groups are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default,' you can see the proportion of each outcome within every age group. You're looking for significant differences in the default rate across age bins. Based on the data, the **45-50 age group is most prone to default**, with a slightly higher percentage of defaults compared to other age groups."]
                         ),
                         dcc.Graph(
                             id="age-default-plot",
