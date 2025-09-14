@@ -408,25 +408,17 @@ analyze_tab = html.Div(
                         ),
                         html.H5("Model Performance Metrics", className="mt-4"),
                         html.P(
-                            ["To truly evaluate our models, we focus on several key metrics beyond simple accuracy:"],
-                            className="mb-2"
+                            ["To truly evaluate our models, we focus on several key metrics beyond simple accuracy:",
+                            html.Ul([
+                                html.Li([html.B("Precision:"), " Think of Precision as the cost of a false alarm. If your model has high precision, the people it flags for follow-up are very likely to be actual defaulters. Of the clients we predicted would default, how many actually did? High precision is good to avoid false alarms."]),
+                                html.Li([html.B("Recall:"), " Think of Recall as the cost of a missed warning. If your model has high recall, it's very good at finding most of the people who will default, so you don't miss a high-risk client. Of all the clients who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk clients as possible."]),
+                                html.Li([html.B("F1-Score:"), " A balance between precision and recall, providing a single metric to compare models. This is the harmonic mean of precision and recall. It's a single number that helps you compare models when both precision and recall are important."]),
+                                html.Li([html.B("ROC-AUC:"), " This is a powerful summary metric. It measures the model's ability to distinguish between the two classes (defaulters vs. non-defaulters). A score closer to 1.0 is better."])
+                            ])
+                            ]
                         ),
-                        html.P(
-                            ["• ", html.B("Precision:"), " Think of Precision as the cost of a false alarm. If your model has high precision, the people it flags for follow-up are very likely to be actual defaulters. Of the clients we predicted would default, how many actually did? High precision is good to avoid false alarms."],
-                            className="mb-1"
-                        ),
-                        html.P(
-                            ["• ", html.B("Recall:"), " Think of Recall as the cost of a missed warning. If your model has high recall, it's very good at finding most of the people who will default, so you don't miss a high-risk client. Of all the clients who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk clients as possible."],
-                            className="mb-1"
-                        ),
-                        html.P(
-                            ["• ", html.B("F1-Score:"), " A balance between precision and recall, providing a single metric to compare models. This is the harmonic mean of precision and recall. It's a single number that helps you compare models when both precision and recall are important."],
-                            className="mb-1"
-                        ),
-                        html.P(
-                            ["• ", html.B("ROC-AUC:"), " This is a powerful summary metric. It measures the model's ability to distinguish between the two classes (defaulters vs. non-defaulters). A score closer to 1.0 is better."],
-                            className="mb-1"
-                        ),
+                        html.P(["The ", html.B("Gradient Boosting"), " model demonstrates the best overall performance in identifying loan defaulters. It achieved an exceptional ", html.B("Precision"), " of ", html.B("0.86"), ", meaning that when it predicted a client would default, it was correct 86% of the time. Its ", html.B("Recall"), " was a perfect ", html.B("1.00"), ", successfully identifying every single one of the actual defaulters. This led to an outstanding ", html.B("F1-Score"), " of ", html.B("0.93"), " and an ", html.B("AUC"), " of ", html.B("0.99"), ", indicating it has an almost perfect ability to distinguish between the two classes. The model's low number of false negatives (0) is a critical business success, as it avoids missing any high-risk clients, which would result in significant financial loss for the bank."]),
+
                         html.H6("Confusion Matrix", className="mt-4"),
                         html.P(
                             ["The confusion matrix is a table that breaks down your model's predictions into four categories:", 
@@ -576,11 +568,12 @@ def update_metrics_and_importance(selected_model):
         )
         
         # Merged the old and new text
-        roc_description_list.append(
+        roc_description_list.extend([
             html.P(
                 ["The ROC curve plots the ", html.B("True Positive Rate"), " against the ", html.B("False Positive Rate"), ". The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The Area Under the Curve (AUC) provides a single metric to summarize the model's performance. The plot you're seeing shows the trade-off for each model between finding actual defaulters (True Positive Rate) and incorrectly flagging non-defaulters as high-risk (False Positive Rate). A good model will have a curve that bows out towards the top-left corner, staying well above the diagonal 'random guess' line, indicating it is much better than a coin flip at separating the two groups."]
-            )
-        )
+            ),
+            html.P(["The ", html.B("Gradient Boosting"), " model has the best ROC curve, with an ", html.B("AUC"), " of ", html.B("0.99"), ", demonstrating its superior ability to differentiate between clients who will and will not default. The ", html.B("Logistic Regression"), " model also performs well with an ", html.B("AUC"), " of ", html.B("0.95"), ", while the ", html.B("Random Forest"), " and ", html.B("Decision Tree"), " models have a lower ", html.B("AUC"), " of ", html.B("0.92"), " and ", html.B("0.91"), ", respectively. The ", html.B("SVM"), " model has an ", html.B("AUC"), " of ", html.B("0.86"), ", performing the worst among the models. This confirms that ", html.B("Gradient Boosting"), " is the most reliable model for this classification task."])
+        ])
         
         # Add dynamic text about model performance
         if roc_auc > 0.8:
