@@ -292,7 +292,6 @@ prepare_tab = html.Div(
                 ),
             ]
         ),
-        # html.H4("Key Features and Their Meaning", className="mt-4"),
         html.H5("Key Features and Their Meaning"),
         html.P("To make our model's predictions more understandable, we created several new features. These are based on past client behavior and are crucial for predicting future risk."),
         dbc.Table.from_dataframe(
@@ -309,9 +308,7 @@ prepare_tab = html.Div(
             }),
             striped=True, bordered=True, hover=True
         ),
-        # html.H4("Sample of the Prepared Data", className="mt-4"),
         html.H5("Dataset Sample (First 10 Rows)"),
-        # html.P("A sample of 10 rows from the final, merged dataset. You can sort and filter the columns to explore the data."),
         dash_table.DataTable(
             id='sample-table',
             columns=columns_with_types,
@@ -386,7 +383,9 @@ analyze_tab = html.Div(
                             )
                         ),
                         html.H5("The Importance of Specific Transaction Data", className="mt-4"),
-                        html.P("Our analysis highlights the value of focusing on **specific, granular data**. In this project, we created detailed features from raw transaction data, such as `avg_balance_before_loan` and `times_balance_below_5K`. These are much more informative than a client's simple total transaction amount because they capture specific behaviors—like frequent overdrafts or low balances—that are strong indicators of financial stability and the likelihood of default. A simple 'total' metric would hide these crucial risk signals, making it difficult to accurately predict a client's risk.")
+                        html.P(
+                            ["Our analysis highlights the value of focusing on ", html.B("specific, granular data"), ". In this project, we created detailed features from raw transaction data, such as `avg_balance_before_loan` and `times_balance_below_5K`. These are much more informative than a client's simple total transaction amount because they capture specific behaviors—like frequent overdrafts or low balances—that are strong indicators of financial stability and the likelihood of default. A simple 'total' metric would hide these crucial risk signals, making it difficult to accurately predict a client's risk."]
+                        ),
                     ], className="p-4"
                 )
             ]),
@@ -436,11 +435,13 @@ analyze_tab = html.Div(
                         ]),
                         html.Hr(),
                         html.H5("Feature Importance", className="mt-4"),
-                        html.P("This plot ranks the features based on how much they contributed to the model's prediction. The two most important features were `avg_balance_before_loan` and `avg_amount_trans_before_loan`. This gives us a clear starting point for our recommendations."),
+                        html.P(
+                            ["This plot ranks the features based on how much they contributed to the model's prediction. The two most important features were ", html.B("`avg_balance_before_loan`"), " and ", html.B("`avg_amount_trans_before_loan`"), ". This gives us a clear starting point for our recommendations."]
+                        ),
                         dcc.Graph(id="feature-importance-plot"),
                         html.Hr(),
                         html.H5("Receiver Operating Characteristic (ROC) Curve", className="mt-4"),
-                        html.P("The ROC curve plots the True Positive Rate against the False Positive Rate. The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The area under the curve (AUC) provides a single metric to summarize the model's performance."),
+                        html.P(id="roc-curve-description"),
                         dcc.Graph(id="roc-curve-plot"),
                     ], className="p-4"
                 )
@@ -484,6 +485,7 @@ app.layout = dbc.Container(
     Output("classification-report-text", "children"),
     Output("feature-importance-plot", "figure"),
     Output("roc-curve-plot", "figure"),
+    Output("roc-curve-description", "children"), # New output for dynamic description
     Input('model-dropdown', 'value')
 )
 def update_metrics_and_importance(selected_model):
@@ -529,8 +531,9 @@ def update_metrics_and_importance(selected_model):
     else:
         fig_fi.update_layout(title=f"Feature Importance Not Available for {selected_model}")
         
-    # 4. New ROC Curve Plot
+    # 4. New ROC Curve Plot and Description
     fig_roc = go.Figure()
+    roc_description = []
     if hasattr(model, 'predict_proba'):
         y_pred_proba = model.predict_proba(X_test_for_pred)[:, 1]
         fpr, tpr, _ = metrics.roc_curve(y_test, y_pred_proba)
@@ -546,11 +549,24 @@ def update_metrics_and_importance(selected_model):
             margin=dict(t=50, b=50),
             legend=dict(x=0.6, y=0.1)
         )
+        
+        # Dynamic description for ROC Curve
+        roc_description.append("The ROC curve plots the True Positive Rate against the False Positive Rate. The closer the curve is to the top-left corner, the better the model is at distinguishing between the two classes (defaulters and non-defaulters). The Area Under the Curve (AUC) provides a single metric to summarize the model's performance. The plot you're seeing shows the trade-off for each model between finding actual defaulters (True Positive Rate) and incorrectly flagging non-defaulters as high-risk (False Positive Rate). ")
+        
+        # Add dynamic text about model performance
+        if roc_auc > 0.8:
+            roc_description.append("This model appears to be a **good classifier** with an AUC of {:.2f}, indicating it is much better than a coin flip at separating the two groups.".format(roc_auc))
+        elif roc_auc > 0.6:
+            roc_description.append("This model's AUC of {:.2f} suggests it has **moderate predictive power**, performing better than a random guess but with room for improvement.".format(roc_auc))
+        else:
+            roc_description.append("With an AUC of {:.2f}, this model's performance is **closer to a random guess**. It may not be reliable for identifying at-risk clients.".format(roc_auc))
+
     else:
         fig_roc.update_layout(title=f"ROC Curve Not Available for {selected_model}")
+        roc_description.append("The ROC curve is not available for this model as it does not support probability predictions.")
 
-    # No more correlation matrix to return
-    return fig_cm, report, fig_fi, fig_roc
+    # Return the new output
+    return fig_cm, report, fig_fi, fig_roc, html.P(roc_description)
     
 # Run the app
 if __name__ == "__main__":
