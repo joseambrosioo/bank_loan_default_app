@@ -292,7 +292,8 @@ prepare_tab = html.Div(
                 ),
             ]
         ),
-        html.H4("Key Features and Their Meaning", className="mt-4"),
+        # html.H4("Key Features and Their Meaning", className="mt-4"),
+        html.H5("Key Features and Their Meaning"),
         html.P("To make our model's predictions more understandable, we created several new features. These are based on past client behavior and are crucial for predicting future risk."),
         dbc.Table.from_dataframe(
             pd.DataFrame({
@@ -308,8 +309,9 @@ prepare_tab = html.Div(
             }),
             striped=True, bordered=True, hover=True
         ),
-        html.H4("Sample of the Prepared Data", className="mt-4"),
-        html.P("A sample of 10 rows from the final, merged dataset. You can sort and filter the columns to explore the data."),
+        # html.H4("Sample of the Prepared Data", className="mt-4"),
+        html.H5("Dataset Sample (First 10 Rows)"),
+        # html.P("A sample of 10 rows from the final, merged dataset. You can sort and filter the columns to explore the data."),
         dash_table.DataTable(
             id='sample-table',
             columns=columns_with_types,
