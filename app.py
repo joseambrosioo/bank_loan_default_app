@@ -345,8 +345,8 @@ def update_metrics_and_importance(selected_model):
 
     fig_cm = ff.create_annotated_heatmap(
         z=z_data,
-        x=["Default (1)", "No Default (0)"],
-        y=["Default (1)", "No Default (0)"],
+        x=["Predicted Default (1)", "Predicted No Default (0)"],
+        y=["Actual Default (1)", "Actual No Default (0)"],
         annotation_text=cm_text,
         colorscale='Blues'
     )
