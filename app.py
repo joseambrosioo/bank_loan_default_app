@@ -403,7 +403,88 @@ explain_tab = html.Div(
     ], className="p-4"
 )
 
-# --- 5. ACT Tab ---
+# --- 5. SIMULATE Tab (FIXED LAYOUT) ---
+simulate_tab = html.Div([
+    html.H4(["🧪 ", html.B("SIMULATE"), " — Risk Scenario Builder"], className="mt-4"),
+    html.P("Adjust values using the sliders. Labels will show the exact values selected."),
+    
+    dbc.Row([
+        dbc.Col([
+            # Balance Section
+            html.Div([
+                html.Label([html.B("Average Balance: "), html.Span(id="val-balance")]),
+                dcc.Slider(id='sim-balance', min=0, max=100000, step=1000, value=20000, 
+                           marks={0: '0', 100000: '100k'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            html.Div([
+                html.Label([html.B("Minimum Recorded Balance: "), html.Span(id="val-min-balance", style={"color": "red"})]),
+                dcc.Slider(id='sim-min-balance', min=-20000, max=20000, step=500, value=1000, 
+                           marks={-20000: '-20k', 0: '0', 20000: '20k'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            # Loan Details
+            html.Div([
+                html.Label([html.B("Loan Amount: "), html.Span(id="val-amount")]),
+                dcc.Slider(id='sim-amount', min=0, max=500000, step=10000, value=100000, 
+                           marks={0: '0', 500000: '500k'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            html.Div([
+                html.Label([html.B("Months Account Active: "), html.Span(id="val-months")]),
+                dcc.Slider(id='sim-months-active', min=1, max=100, step=1, value=24, 
+                           marks={1: '1m', 100: '100m'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            # ADDED: Monthly Payments Slider (Missing in previous version)
+            html.Div([
+                html.Label([html.B("Monthly Loan Installment: "), html.Span(id="val-payments")]),
+                dcc.Slider(id='sim-payments', min=0, max=15000, step=500, value=5000, 
+                           marks={0: '0', 15000: '15k'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            html.Hr(),
+
+            # Behavior Sliders
+            html.Div([
+                html.Label([html.B("Penalty Interest: "), html.Span(id="val-penalty")]),
+                dcc.Slider(id='sim-penalty', min=0, max=5000, step=100, value=0, 
+                           marks={0: '0', 5000: '5k'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            # ADDED: Low Frequency Slider (Missing in previous version)
+            html.Div([
+                html.Label([html.B("Freq. Low Balance (<5k): "), html.Span(id="val-low-freq")]),
+                dcc.Slider(id='sim-low-freq', min=0, max=50, step=1, value=0, 
+                           marks={0: '0', 50: '50'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            html.Div([
+                html.Label([html.B("Withdrawal/Deposit Ratio: "), html.Span(id="val-ratio")]),
+                dcc.Slider(id='sim-wd-ratio', min=0.1, max=5.0, step=0.1, value=1.0, 
+                           marks={0.1: '0.1', 5: '5.0'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            dbc.Accordion([
+                dbc.AccordionItem(html.Div(id="sim-data-debug"), title="🔍 View Internal Model Mapping (Audit)")
+            ], start_collapsed=True, className="mt-4"),
+            
+        ], md=7),
+        
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader(html.B("Simulated Risk Output")),
+                dbc.CardBody([
+                    dcc.Graph(id="sim-gauge", style={"height": "250px"}),
+                    html.Div(id="sim-outcome-text", className="text-center mb-3"),
+                    html.Div(id="sim-top-impacts")
+                ])
+            ], className="shadow-sm sticky-top", style={"top": "20px"})
+        ], md=5)
+    ])
+], className="p-4")
+
+# --- 6. ACT Tab ---
 act_tab = html.Div([
     # Header Section
     html.Div([
@@ -514,6 +595,7 @@ app.layout = dbc.Container(
                 dbc.Tab(prepare_tab, label="Prepare"),
                 dbc.Tab(analyze_tab, label="Analyze"),
                 dbc.Tab(explain_tab, label="Explain"),
+                dbc.Tab(simulate_tab, label="Simulate"),
                 dbc.Tab(act_tab, label="Act"),
             ]
         ),
@@ -914,5 +996,109 @@ def download_dictionary(n_clicks):
     # This now exports all 55 features automatically
     return dcc.send_data_frame(full_feature_list.to_csv, "Full_Bank_Data_Dictionary.csv", index=False)
 
+@app.callback(
+    [Output("sim-gauge", "figure"), 
+     Output("sim-outcome-text", "children"),
+     Output("sim-data-debug", "children"),
+     # Added these new Outputs to match the display labels in the layout
+     Output("val-balance", "children"),
+     Output("val-min-balance", "children"),
+     Output("val-amount", "children"),
+     Output("val-months", "children"),
+     Output("val-penalty", "children"),
+     Output("val-ratio", "children"),
+     Output("val-payments", "children"), # New
+     Output("val-low-freq", "children")], # New
+    [Input('sim-balance', 'value'), 
+     Input('sim-min-balance', 'value'),
+     Input('sim-amount', 'value'), 
+     Input('sim-months-active', 'value'),
+     Input('sim-penalty', 'value'),     
+     Input('sim-low-freq', 'value'),
+     Input('sim-wd-ratio', 'value'),   
+     Input('sim-payments', 'value')],  
+    State("explain-model-dropdown", "value")
+)
+def update_simulator(bal, min_bal, amt, months, penalty, freq, ratio, pay, model_name):
+    # 1. Start with the baseline (mean values of the training set)
+    row = pd.DataFrame(X_train.mean().values.reshape(1, -1), columns=X_train.columns)
+    
+    # 2. Tracking for Audit
+    audit_trail = []
+    
+    # 3. Precise Column Mapping Logic
+    # We look for keywords in your column names to inject slider values correctly
+    for col in row.columns:
+        c_low = col.lower()
+        matched = False
+        
+        if 'avg_balance' in c_low and '3m' in c_low: 
+            row[col] = bal; matched = True
+        elif 'min_balance' in c_low: 
+            row[col] = min_bal; matched = True
+        elif 'amount' == c_low or (('loan' in c_low) and ('amt' in c_low)): 
+            row[col] = amt; matched = True
+        elif any(x in c_low for x in ['months', 'duration', 'active_time']): 
+            row[col] = months; matched = True
+        elif 'below_5k' in c_low or 'low_bal' in c_low: 
+            row[col] = freq; matched = True
+        elif 'sankc' in c_low or 'penalty' in c_low: 
+            row[col] = penalty; matched = True
+        elif any(x in c_low for x in ['ratio', 'wd_', 'withdrawal_deposit']): 
+            row[col] = ratio; matched = True
+        elif 'payments' in c_low or 'installment' in c_low: 
+            row[col] = pay; matched = True
+            
+        if matched:
+            audit_trail.append(html.Div(f"✅ {col} -> {row[col].values[0]}"))
+
+    # 4. Model Prediction
+    model = trained_models[model_name]
+    # Apply standard scaling if using a linear model
+    input_data = sc.transform(row) if model_name in ['SVM', 'Logistic Regression'] else row
+    prob = model.predict_proba(input_data)[0][1] if hasattr(model, 'predict_proba') else 0.5
+    
+    # 5. Build the Gauge Figure
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number", value=prob*100,
+        number={'suffix': "%", 'valueformat':'.1f'},
+        gauge={'axis': {'range': [0, 100]}, 
+               'bar': {'color': '#2c3e50'},
+               'steps': [
+                   {'range': [0, 30], 'color': "#27ae60"},
+                   {'range': [30, 85], 'color': "#f1c40f"},
+                   {'range': [85, 100], 'color': "#e74c3c"}
+               ]}
+    ))
+    fig.update_layout(height=250, margin=dict(t=50, b=0))
+    
+    # 6. Formatting Status and Display Strings
+    if prob >= 0.95:
+        status_msg = html.Span("🚨 TOTAL RISK SATURATION", className="text-danger")
+    elif prob > 0.7:
+        status_msg = html.Span("🔴 HIGH RISK", className="text-danger")
+    else:
+        status_msg = html.Span("🟢 LOW RISK", className="text-success")
+
+    debug_header = html.B("🛠️ Model Data Audit (Live Mapping):")
+    audit_content = [debug_header] + (audit_trail if audit_trail else [html.Div("⚠️ No columns matched!")])
+
+    # Format values for labels (adding symbols and commas)
+    disp_bal = f"${bal:,.0f}"
+    disp_min = f"${min_bal:,.0f}"
+    disp_amt = f"${amt:,.0f}"
+    disp_mon = f"{months} Months"
+    disp_pen = f"${penalty:,.0f}"
+    disp_rat = f"{ratio:.1f}x"
+
+    # Return 2 extra values at the end:
+    disp_pay = f"${pay:,.0f}"
+    disp_freq = f"{freq} times"
+    
+    # Return everything to the UI
+    return (fig, status_msg, audit_content, 
+            disp_bal, disp_min, disp_amt, disp_mon, disp_pen, disp_rat, 
+            disp_pay, disp_freq)
+    
 if __name__ == "__main__":
     app.run(debug=True)
