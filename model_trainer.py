@@ -9,7 +9,7 @@ import os
 
 class LoanModelTrainer:
     """
-    A class to handle data preprocessing and machine learning model training
+    A class to handle data preprocessing and machine learning model training 
     for the loan default prediction task.
     """
     def __init__(self, card_path, account_path, disp_path, client_path, district_path, order_path, loan_path, trans_path):
@@ -128,7 +128,7 @@ class LoanModelTrainer:
         df = df.merge(card, how="left", on="disp_id")
         df = df.merge(client, how="left", on="client_id")
 
-        # --- FIXED DISTRICT MERGE ---
+        # --- DISTRICT MERGE CORRECTION ---
         district_col = None
         for col in df.columns:
             if "district_id" in col:
@@ -137,12 +137,12 @@ class LoanModelTrainer:
         if district_col:
             df = df.merge(district, how="left", left_on=district_col, right_on="A1")
         else:
-            raise KeyError("No district_id column found in df to merge with district table")
+            raise KeyError("No 'district_id' column found in df to merge with 'district' table")
 
         trans_pv_k_symbol = trans_pv_k_symbol.groupby("account_id", as_index=False).mean()
         df = df.merge(trans_pv_k_symbol, how="left", on="account_id")
 
-        # Handle the target variable `status` first
+        # Handle target variable 'status' first
         df.status = df.status.map({"A": 0, "B": 1, "C": 0, "D": 1})
 
         # --- CLEANING AND FEATURE ENGINEERING ---
@@ -166,30 +166,30 @@ class LoanModelTrainer:
         ]
         df.drop(columns=columns_to_drop, axis=1, inplace=True, errors='ignore')
 
-        # Drop any remaining datetime columns
+        # Remove any remaining datetime columns
         for col in df.columns:
             if pd.api.types.is_datetime64_any_dtype(df[col]):
-                print(f"Dropping datetime column: {col}")
+                print(f"Removing datetime column: {col}")
                 df.drop(columns=[col], inplace=True, errors='ignore')
         
-        # Fill remaining numerical NaNs with 0
+        # Fill remaining numeric NaNs with 0
         df.fillna(0, inplace=True)
 
-        # Binning age and creating a copy for plotting BEFORE get_dummies
+        # Group age and create copy for plotting BEFORE get_dummies
         cut_points = [24, 34, 44, 50]
         labels = ["20-24", "25-34", "35-44", "45-50", "50+"]
         
-        # Fill any NaNs in the 'age' column first to prevent issues with pd.cut
+        # Fill NaNs in 'age' first to avoid pd.cut issues
         df['age'] = df['age'].fillna(df['age'].mean())
         df["age_bin"] = pd.cut(df["age"], bins=[df["age"].min()] + cut_points + [df["age"].max()], labels=labels, include_lowest=True)
 
-        # Make a copy of the DataFrame for plotting before dropping/converting columns
+        # Create a copy of DataFrame for plotting before removing/converting columns
         self.df_for_plotting = df.copy()
 
-        # Get dummies for the age_bin for the model training
+        # Create dummy variables for 'age_bin' for model training
         self.df = pd.get_dummies(df, columns=["age_bin"], drop_first=True, dtype=int)
 
-        # Handle remaining object columns with get_dummies, ensuring NaNs are filled first
+        # Handle remaining 'object' columns with get_dummies
         for col in self.df.columns:
             if self.df[col].dtype == 'object':
                 self.df[col] = self.df[col].fillna('unknown')
@@ -197,10 +197,10 @@ class LoanModelTrainer:
                     if self.df[col].nunique() > 1:
                         self.df = pd.get_dummies(self.df, columns=[col], drop_first=True, dtype=int)
                     else:
-                        print(f"Dropping single-valued object column: {col}")
+                        print(f"Removing object column with single value: {col}")
                         self.df.drop(columns=[col], inplace=True, errors='ignore')
                 except Exception as e:
-                    print(f"Dropping problematic object column: {col} due to: {e}")
+                    print(f"Removing problematic object column: {col} due to: {e}")
                     self.df.drop(columns=[col], inplace=True, errors='ignore')
 
         return self.df, self.df_for_plotting
@@ -210,7 +210,7 @@ class LoanModelTrainer:
         X = df.loc[:, df.columns != "status"]
         y = df.loc[:, "status"]
         
-        # Standardize numerical features for certain models
+        # Standardize numeric features for certain models
         self.sc = StandardScaler()
         X_scaled = X.copy()
         numeric_cols = X_scaled.select_dtypes(include=np.number).columns.tolist()
@@ -223,7 +223,7 @@ class LoanModelTrainer:
             'Random Forest': ensemble.RandomForestClassifier(n_estimators=200, random_state=42),
             'Decision Tree': tree.DecisionTreeClassifier(max_depth=5, random_state=42),
             'Gradient Boosting': ensemble.GradientBoostingClassifier(n_estimators=200, random_state=42),
-            'SVM': svm.SVC(C=5, kernel="rbf", random_state=42, probability=True),
+            'SVM': svm.SVC(C=5, kernel="linear", random_state=42, probability=True),
             'Logistic Regression': linear_model.LogisticRegression(penalty="l1", C=1, solver='liblinear', random_state=42),
         }
         
@@ -241,12 +241,12 @@ class LoanModelTrainer:
         return self.trained_models, self.X_train, self.X_test, self.y_train, self.y_test, self.sc, self.X_orig, self.X_scaled_test, df, df_for_plotting
 
     def train_and_save_models(self, filename='models/trained_models.joblib'):
-        # Add this line to create the models directory if it doesn't exist
+        # Create models directory if it doesn't exist
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         
         if os.path.exists(filename):
             print(f"Loading trained models from {filename}...")
-            # Load the models and other necessary data
+            # Load models and other necessary data
             data = joblib.load(filename)
             self.trained_models = data['models']
             self.X_train = data['X_train']
@@ -259,9 +259,9 @@ class LoanModelTrainer:
             self.df = data['df']
             self.df_for_plotting = data['df_for_plotting']
         else:
-            print("No saved models found. Training new models and saving them...")
+            print("No saved model found. Training new models and saving them...")
             self.trained_models, self.X_train, self.X_test, self.y_train, self.y_test, self.sc, self.X_orig, self.X_scaled_test, self.df, self.df_for_plotting = self.train_models()
-            # Save the trained models and other necessary data
+            # Save trained models and other necessary data
             data = {
                 'models': self.trained_models,
                 'X_train': self.X_train,
