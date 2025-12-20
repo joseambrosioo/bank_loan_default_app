@@ -403,14 +403,14 @@ explain_tab = html.Div(
     ], className="p-4"
 )
 
-# --- 5. SIMULATE Tab (FIXED LAYOUT) ---
+# --- 5. SIMULATE Tab (FIXED & CLEAN) ---
 simulate_tab = html.Div([
     html.H4(["🧪 ", html.B("SIMULATE"), " — Risk Scenario Builder"], className="mt-4"),
     html.P("Adjust values using the sliders. Labels will show the exact values selected."),
     
     dbc.Row([
         dbc.Col([
-            # Balance Section
+            # Financial Health Section
             html.Div([
                 html.Label([html.B("Average Balance: "), html.Span(id="val-balance")]),
                 dcc.Slider(id='sim-balance', min=0, max=100000, step=1000, value=20000, 
@@ -418,12 +418,21 @@ simulate_tab = html.Div([
             ], className="mb-3"),
 
             html.Div([
-                html.Label([html.B("Minimum Recorded Balance: "), html.Span(id="val-min-balance", style={"color": "red"})]),
+                html.Label([html.B("Minimum Recorded Balance: "), html.Span(id="val-min-balance")]),
                 dcc.Slider(id='sim-min-balance', min=-20000, max=20000, step=500, value=1000, 
                            marks={-20000: '-20k', 0: '0', 20000: '20k'}, tooltip={"placement": "bottom"}),
             ], className="mb-3"),
 
-            # Loan Details
+            html.Div([
+                html.Label([html.B("Freq. Low Balance (<5k): "), html.Span(id="val-low-freq")]),
+                # FIXED: Added missing ID 'sim-low-freq'
+                dcc.Slider(id='sim-low-freq', min=0, max=50, step=1, value=5, 
+                           marks={0: '0', 50: '50'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
+            html.Hr(),
+
+            # Loan Specifics Section
             html.Div([
                 html.Label([html.B("Loan Amount: "), html.Span(id="val-amount")]),
                 dcc.Slider(id='sim-amount', min=0, max=500000, step=10000, value=100000, 
@@ -431,40 +440,40 @@ simulate_tab = html.Div([
             ], className="mb-3"),
 
             html.Div([
-                html.Label([html.B("Months Account Active: "), html.Span(id="val-months")]),
-                dcc.Slider(id='sim-months-active', min=1, max=100, step=1, value=24, 
-                           marks={1: '1m', 100: '100m'}, tooltip={"placement": "bottom"}),
-            ], className="mb-3"),
-
-            # ADDED: Monthly Payments Slider (Missing in previous version)
-            html.Div([
                 html.Label([html.B("Monthly Loan Installment: "), html.Span(id="val-payments")]),
+                # FIXED: Added missing ID 'sim-payments'
                 dcc.Slider(id='sim-payments', min=0, max=15000, step=500, value=5000, 
                            marks={0: '0', 15000: '15k'}, tooltip={"placement": "bottom"}),
             ], className="mb-3"),
 
+            html.Div([
+                html.Label([html.B("Months Account Active: "), html.Span(id="val-months")]),
+                dcc.Slider(id='sim-months-active', min=1, max=120, step=1, value=24, 
+                           marks={1: '1m', 120: '10y'}, tooltip={"placement": "bottom"}),
+            ], className="mb-3"),
+
             html.Hr(),
 
-            # Behavior Sliders
+            # Behavioral Metrics
             html.Div([
                 html.Label([html.B("Penalty Interest: "), html.Span(id="val-penalty")]),
                 dcc.Slider(id='sim-penalty', min=0, max=5000, step=100, value=0, 
                            marks={0: '0', 5000: '5k'}, tooltip={"placement": "bottom"}),
-            ], className="mb-3"),
-
-            # ADDED: Low Frequency Slider (Missing in previous version)
-            html.Div([
-                html.Label([html.B("Freq. Low Balance (<5k): "), html.Span(id="val-low-freq")]),
-                dcc.Slider(id='sim-low-freq', min=0, max=50, step=1, value=0, 
-                           marks={0: '0', 50: '50'}, tooltip={"placement": "bottom"}),
-            ], className="mb-3"),
+            ], className="mb-4"),
 
             html.Div([
                 html.Label([html.B("Withdrawal/Deposit Ratio: "), html.Span(id="val-ratio")]),
                 dcc.Slider(id='sim-wd-ratio', min=0.1, max=5.0, step=0.1, value=1.0, 
                            marks={0.1: '0.1', 5: '5.0'}, tooltip={"placement": "bottom"}),
-            ], className="mb-3"),
+            ], className="mb-4"),
 
+            # Action Buttons
+            dbc.ButtonGroup([
+                dbc.Button("💾 Save Scenario", id="btn-save-scenario", color="primary", className="me-2"),
+                dbc.Button("🗑️ Clear History", id="btn-clear-history", color="light", outline=True),
+            ], className="mt-2 w-100"),
+            
+            # Audit Section
             dbc.Accordion([
                 dbc.AccordionItem(html.Div(id="sim-data-debug"), title="🔍 View Internal Model Mapping (Audit)")
             ], start_collapsed=True, className="mt-4"),
@@ -476,12 +485,35 @@ simulate_tab = html.Div([
                 dbc.CardHeader(html.B("Simulated Risk Output")),
                 dbc.CardBody([
                     dcc.Graph(id="sim-gauge", style={"height": "250px"}),
-                    html.Div(id="sim-outcome-text", className="text-center mb-3"),
-                    html.Div(id="sim-top-impacts")
+                    html.Div(id="sim-outcome-text", className="text-center mb-3 h4"),
                 ])
             ], className="shadow-sm sticky-top", style={"top": "20px"})
         ], md=5)
-    ])
+    ]),
+
+    # History Table
+    html.Hr(className="my-5"),
+    html.H5("📊 Saved Scenario History"),
+    dash_table.DataTable(
+        id='scenario-history-table',
+        columns=[
+            {"name": "Scenario Name", "id": "name"},
+            {"name": "Risk Score", "id": "score"},
+            {"name": "Balance", "id": "balance"},
+            {"name": "Min Bal", "id": "min_bal"},
+            {"name": "Loan Amt", "id": "amount"},
+            {"name": "Low Bal Freq", "id": "low_freq"},    # NEW
+            {"name": "Penalty Paid", "id": "penalty"},    # NEW
+        ],
+        data=[],
+        style_table={'overflowX': 'auto'},
+        style_header={'backgroundColor': '#f8f9fa', 'fontWeight': 'bold'},
+        style_data_conditional=[{
+            'if': {'filter_query': '{score} contains "9" || {score} contains "8"', 'column_id': 'score'},
+            'backgroundColor': '#ffdfdf', 'color': '#c0392b'
+        }]
+    ),
+    dcc.Store(id='scenario-storage', data=[])
 ], className="p-4")
 
 # --- 6. ACT Tab ---
@@ -1099,6 +1131,53 @@ def update_simulator(bal, min_bal, amt, months, penalty, freq, ratio, pay, model
     return (fig, status_msg, audit_content, 
             disp_bal, disp_min, disp_amt, disp_mon, disp_pen, disp_rat, 
             disp_pay, disp_freq)
+   
+@app.callback(
+    Output("scenario-storage", "data"),
+    Input("btn-save-scenario", "n_clicks"),
+    Input("btn-clear-history", "n_clicks"),
+    State("scenario-storage", "data"),
+    State('sim-balance', "value"),
+    State('sim-min-balance', "value"),
+    State('sim-amount', "value"),
+    State('sim-low-freq', "value"),    # NEW STATE
+    State('sim-penalty', "value"),     # NEW STATE
+    State('sim-gauge', "figure"),
+    prevent_initial_call=True
+)
+def manage_scenarios(n_save, n_clear, current_data, bal, min_bal, amt, low_freq, penalty, gauge_fig):
+    ctx = callback_context
+    if not ctx.triggered:
+        return current_data
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if button_id == "btn-clear-history":
+        return []
+
+    if button_id == "btn-save-scenario":
+        # Extract the probability score from the gauge
+        score = gauge_fig['data'][0]['value']
+        
+        new_entry = {
+            "name": f"Scenario {len(current_data) + 1}",
+            "score": f"{score:.1f}%",
+            "balance": f"${bal:,.0f}",
+            "min_bal": f"${min_bal:,.0f}",
+            "amount": f"${amt:,.0f}",
+            "low_freq": f"{low_freq} times",    # NEW ENTRY
+            "penalty": f"${penalty:,.0f}",     # NEW ENTRY
+        }
+        current_data.append(new_entry)
+        return current_data
+
+# Simple callback to link Store to DataTable
+@app.callback(
+    Output("scenario-history-table", "data"),
+    Input("scenario-storage", "data")
+)
+def update_table(data):
+    return data
     
 if __name__ == "__main__":
     app.run(debug=True)
