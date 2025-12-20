@@ -95,7 +95,7 @@ prepare_tab = html.Div(
                         html.P(f"Total Features: {df.shape[1]}", className="mb-1"),
                     ]),
                 ], className="mb-4 shadow-sm"),
-                md=4
+                # md=4
             ),
         ]),
         
