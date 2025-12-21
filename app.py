@@ -54,18 +54,49 @@ header = dbc.Navbar(
 )
 
 # --- 1. ASK Tab ---
-ask_tab = dcc.Markdown(
-    """
-    ### ❓ **ASK** — The Business Question
-    This section defines the core business problem.
+# --- 1. ASK Tab (HTML Version) ---
+ask_tab = html.Div([
+    # Header Section (Matching the Blue/Grey professional header style)
+    html.Div([
+        html.H3("❓ ASK — The Business Question", className="mb-0"),
+        html.P("Defining the core objectives and stakeholder requirements for loan risk assessment.", className="text-muted"),
+    ], className="p-4 bg-light border-bottom mb-4"),
 
-    **Business Task**: As a bank, we want to predict which loan applicants have a high risk of **defaulting** (failing to repay the loan). By identifying "good" versus "bad" customers, we can improve our loan approval process, manage risk more effectively, and offer proactive support to prevent defaults.
+    dbc.Container([
+        dbc.Row([
+            dbc.Col([
+                html.Div([
+                    # Business Task
+                    html.B("Business Task", style={"font-size": "1.2rem"}),
+                    html.P([
+                        "As a bank, we want to predict which loan applicants have a high risk of ",
+                        html.B("defaulting"), 
+                        " (failing to repay the loan). By identifying 'good' versus 'bad' customers, we can improve our loan approval process, manage risk more effectively, and offer proactive support to prevent defaults."
+                    ]),
 
-    **Stakeholders**: The primary users of this analysis are **Bank Managers**, **Risk Analysts**, and **Customer Service** teams. They need a clear and actionable way to understand who is most likely to default and why.
+                    # Stakeholders
+                    html.B("Stakeholders", style={"font-size": "1.2rem"}),
+                    html.P([
+                        "The primary users of this analysis are ",
+                        html.B("Bank Managers, Risk Analysts,"),
+                        " and ",
+                        html.B("Customer Service"),
+                        " teams. They need a clear and actionable way to understand who is most likely to default and why."
+                    ]),
 
-    **Deliverables**: The final product is an **interactive Machine Learning application** that provides a comprehensive, end-to-end view of our analytical pipeline—from multi-table data integration and feature engineering to rigorous model evaluation and strategic business recommendations.
-    """, className="p-4"
-)
+                    # Deliverables
+                    html.B("Deliverables", style={"font-size": "1.2rem"}),
+                    html.P([
+                        "The final product is an ",
+                        html.B("interactive Machine Learning application"),
+                        " that provides a comprehensive, end-to-end view of our analytical pipeline—from multi-table data integration and feature engineering to rigorous model evaluation and strategic business recommendations."
+                    ]),
+                ], className="p-3 bg-white") # Optional: added background white for card-like feel
+            ], md=12) # Spans the full width of the container
+        ])
+    ], fluid=True)
+  
+], className="p-0")
 
 # 1. Automate the Feature List logic
 # This creates the data for all 55 features directly from your dataframe
@@ -541,7 +572,7 @@ act_tab = html.Div([
         dbc.Row([
             dbc.Col([
                 html.Div([
-                    html.H5("💡 Business Strategy & Recommendations", className="mt-4"),
+                    html.H5("💡 Business Strategy & Recommendations"),
                     html.Hr(),
                     
                     html.B("Prioritize with Data"),
