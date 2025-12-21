@@ -84,7 +84,9 @@ full_feature_list = pd.DataFrame({
 # --- 2. PREPARE Tab ---
 prepare_tab = html.Div(
     children=[
-        html.H4(["📝 ", html.B("PREPARE"), " — Data Integration & Feature Engineering"], className="mt-4"),
+        html.Div([
+            html.H4(["📝 ", html.B("PREPARE"), " — Data Integration & Feature Engineering"], className="mt-4"),
+        ], className="p-4 bg-light border-bottom mb-4"),
         
         dbc.Row([
             dbc.Col(
@@ -169,10 +171,13 @@ prepare_tab = html.Div(
 # --- 3. ANALYZE Tab ---
 analyze_tab = html.Div(
     children=[
-        html.H4(["📈 ", html.B("ANALYZE"), " — Finding Patterns and Building Models"], className="mt-4"),
-        html.P(
-            ["The Analyze tab is where we transform our prepared data into actionable insights and evaluate the effectiveness of our machine learning models. It is divided into two main sub-tabs: ", html.B("Exploratory Data Analysis (EDA)"), " and ", html.B("Model Performance"), "."]
-        ),
+        html.Div([
+            html.H4(["📈 ", html.B("ANALYZE"), " — Finding Patterns and Building Models"], className="mt-4"),
+            html.P(
+                ["The Analyze tab is where we transform our prepared data into actionable insights and evaluate the effectiveness of our machine learning models. It is divided into two main sub-tabs: ", html.B("Exploratory Data Analysis (EDA)"), " and ", html.B("Model Performance"), "."]
+            ),
+        ], className="p-4 bg-light border-bottom mb-4"),
+        
         dbc.Tabs([
             dbc.Tab(label="Exploratory Data Analysis", children=[
                 html.Div(
@@ -183,8 +188,8 @@ analyze_tab = html.Div(
                         html.H5("Default Distribution", className="mt-4"),
                         html.P(
                             ["The pie chart below shows that our data is ", html.B("imbalanced"), 
-"—only a small percentage of customers actually defaulted. This is common in banking data, which is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate but useless for identifying at-risk customers. We aren't just looking at percentages; we are seeing a critical business problem: ", html.B("class imbalance"), 
-". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means a model could achieve high accuracy simply by predicting 'No Default' all the time. That is why we cannot rely solely on accuracy and need more robust metrics, which we will find in the 'Model Performance' section."]
+                            "—only a small percentage of customers actually defaulted. This is common in banking data, which is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate but useless for identifying at-risk customers. We aren't just looking at percentages; we are seeing a critical business problem: ", html.B("class imbalance"), 
+                            ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means a model could achieve high accuracy simply by predicting 'No Default' all the time. That is why we cannot rely solely on accuracy and need more robust metrics, which we will find in the 'Model Performance' section."]
                         ),
                         dcc.Graph(
                             id="status-pie-chart",
@@ -332,45 +337,39 @@ analyze_tab = html.Div(
 # --- 4. EXPLAIN Tab ---
 explain_tab = html.Div(
     children=[
-        html.H4(["🔍 ", html.B("EXPLAIN"), " — Individual Loan Risk Drivers"], className="mt-4"),
-        html.P("Compare model predictions and see which features most influenced that specific result."),
-        
+        html.Div([
+            html.H4(["🔍 ", html.B("EXPLAIN"), " — Individual Loan Risk Drivers"], className="mt-4"),
+            html.P("Compare model predictions and see which features most influenced that specific result."),
+        ], className="p-4 bg-light border-bottom mb-4"),
+
         dbc.Row([
             dbc.Col([
-                html.H6("1. Select Customer Index:"),
-                dcc.Dropdown(
-                    id="customer-dropdown",
-                    options=[{'label': f'Customer {i}', 'value': i} for i in range(len(X_test))],
-                    value=0,
-                    clearable=False,
-                ),
-            ], md=3),
-            dbc.Col([
-                html.H6("2. Select Model:"),
-                dcc.Dropdown(
-                    id="explain-model-dropdown",
-                    options=[{'label': name, 'value': name} for name in trained_models.keys()],
-                    value='Random Forest',
-                    clearable=False,
-                ),
-            ], md=3),
+                dbc.Card([
+                    dbc.CardHeader(html.B("Audit Selection")),
+                    dbc.CardBody([
+                        html.Label("1. Select Customer Index:"),
+                        dcc.Dropdown(id="customer-dropdown", options=[{'label': f'Customer {i}', 'value': i} for i in range(len(X_test))], value=0, clearable=False, className="mb-3"),
+                        html.Label("2. Select Model Architecture:"),
+                        dcc.Dropdown(id="explain-model-dropdown", options=[{'label': name, 'value': name} for name in trained_models.keys()], value='Random Forest', clearable=False),
+                    ])
+                ], className="shadow-sm"),
+            ], md=4),
             dbc.Col([
                 dbc.Card([
-                    dbc.CardHeader("Prediction & Confidence"),
+                    dbc.CardHeader(html.B("Internal Risk Decision Summary")),
                     dbc.CardBody([
-                        # Row for Result Text and Gauge
                         dbc.Row([
                             dbc.Col([
-                                html.H3(id="prediction-result-text", className="text-center mb-2"),
+                                html.H2(id="prediction-result-text", className="text-center mt-2"),
                                 html.Div(id="consensus-alert-container")
-                            ], md=6, className="d-flex flex-column justify-content-center"),
+                            ], md=6, className="border-end d-flex flex-column justify-content-center"),
                             dbc.Col([
-                                dcc.Graph(id="confidence-gauge", style={"height": "150px"})
+                                dcc.Graph(id="confidence-gauge", style={"height": "180px"})
                             ], md=6)
                         ])
                     ])
-                ])
-            ], md=6)
+                ], className="shadow-sm"),
+            ], md=8),
         ], className="mb-4"),
         
         dcc.Graph(id="shap-waterfall-plot"),
@@ -405,9 +404,11 @@ explain_tab = html.Div(
 
 # --- 5. SIMULATE Tab (FIXED & CLEAN) ---
 simulate_tab = html.Div([
-    html.H4(["🧪 ", html.B("SIMULATE"), " — Loan Risk Scenario Builder"], className="mt-4"),
-    html.P("Adjust values using the sliders. Labels will show the exact values selected."),
-    
+    html.Div([
+        html.H4(["🧪 ", html.B("SIMULATE"), " — Loan Risk Scenario Builder"], className="mt-4"),
+        html.P("Adjust values using the sliders. Labels will show the exact values selected."),
+    ], className="p-4 bg-light border-bottom mb-4"),
+
     dbc.Row([
         dbc.Col([
             # Financial Health Section
@@ -531,9 +532,9 @@ simulate_tab = html.Div([
 act_tab = html.Div([
     # Header Section
     html.Div([
-        html.H3("🚀 ACT — Strategic Decisions", className="mb-3"),
+        html.H4(["🚀 ", html.B("ACT"), " — Strategic Decisions"], className="mt-4"),
         html.P("Translate data insights into business strategy and actionable bank policy."),
-    ], className="p-4 bg-light border-bottom"),
+    ], className="p-4 bg-light border-bottom mb-4"),
 
     dbc.Container([
         # Strategic Content Section
@@ -877,49 +878,88 @@ def update_explanation(cust_idx, selected_model):
     prevent_initial_call=True,
 )
 def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
-    # CRITICAL FIX: Strip emojis for PDF compatibility
-    clean_result = result_text.replace("✅", "").replace("⚠️", "").strip()
+    clean_result = str(result_text).replace("✅", "").replace("⚠️", "").strip()
     
     pdf = FPDF()
     pdf.add_page()
+    
+    # 1. Header & Logo
+    try: pdf.image('logo.png', x=10, y=8, w=30)
+    except:
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(30, 10, "BANK LOGO", border=1, ln=0, align='C')
+
+    pdf.set_xy(45, 10)
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, "INDIVIDUAL LOAN RISK CASE REPORT", ln=True, align='C')
-    pdf.ln(10)
+    pdf.cell(0, 10, "INDIVIDUAL LOAN RISK CASE REPORT", ln=True)
+    pdf.set_xy(45, 18)
+    pdf.set_font("Arial", '', 10)
+    pdf.cell(0, 10, f"Assessment Date: {datetime.now().strftime('%B %d, %Y - %H:%M:%S')}", ln=True)
+
+    # 2. Executive Summary Block
+    pdf.set_xy(10, 35)
+    pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, "EXECUTIVE SUMMARY:", ln=True)
+    pdf.set_font("Arial", '', 11)
+    pdf.multi_cell(0, 7, f"This audit provides a localized risk breakdown for Customer ID {cust_idx}. The internal {model_name} architecture has reached a final decision of '{clean_result}' based on established transaction patterns and liquidity history.")
     
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, f"Customer ID Reference: {cust_idx}", ln=True)
-    pdf.cell(0, 10, f"Assessment Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True)
-    pdf.cell(0, 10, f"Model Architecture: {model_name}", ln=True)
-    pdf.cell(0, 10, f"Final Decision: {clean_result}", ln=True)
+    # 3. Decision Metrics Table
     pdf.ln(5)
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(60, 10, "Audit Parameter", 1, 0, 'L', True); pdf.cell(130, 10, "Value / Observation", 1, 1, 'L', True)
+    pdf.set_font("Arial", '', 11)
+    pdf.cell(60, 10, "Customer Reference", 1); pdf.cell(130, 10, f"CUST-BERKA-{cust_idx}", 1, 1)
+    pdf.cell(60, 10, "Model Used", 1); pdf.cell(130, 10, model_name, 1, 1)
+    pdf.cell(60, 10, "Risk Status", 1); pdf.cell(130, 10, clean_result, 1, 1)
     
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, "TOP MATHEMATICAL LOAN RISK DRIVERS:", ln=True)
+    # 4. Top Risk Drivers
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, "TOP MATHEMATICAL LOAN RISK DRIVERS:", ln=True)
     pdf.set_font("Arial", '', 11)
     
     model = trained_models[model_name]
     if model_name in ['SVM', 'Logistic Regression']:
         vals = X_scaled_test.iloc[cust_idx].values if isinstance(X_scaled_test, pd.DataFrame) else X_scaled_test[cust_idx]
-        coefs = model.coef_[0] if model.coef_.ndim > 1 else model.coef_
-        contribs = vals * coefs
+        contribs = vals * (model.coef_[0] if model.coef_.ndim > 1 else model.coef_)
     else:
         vals = X_test.iloc[cust_idx].values
         contribs = (vals - X_test.mean().values) * model.feature_importances_
 
     df_local = pd.DataFrame({'f': X_orig.columns, 'c': contribs})
-    top_7 = df_local.reindex(df_local.c.abs().sort_values(ascending=False).index).head(7)
+    top_drivers = df_local.reindex(df_local.c.abs().sort_values(ascending=False).index).head(5)
 
-    for i, row in enumerate(top_7.itertuples(), 1):
-        impact = "INCREASES RISK" if row.c > 0 else "REDUCES RISK"
-        # Ensure row.f (feature name) doesn't contain weird characters
-        pdf.cell(0, 8, f"{i}. {str(row.f)}: {impact}", ln=True)
+    for i, row in enumerate(top_drivers.itertuples(), 1):
+        impact = "INCREASES RISK (NEGATIVE SIGNAL)" if row.c > 0 else "REDUCES RISK (SAFETY BUFFER)"
+        pdf.cell(0, 8, f"{i}. {str(row.f).replace('_', ' ').title()}: {impact}", ln=True)
 
+    # 5. Methodology & Recommendations
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 11); pdf.cell(0, 8, "METHODOLOGY & VALIDATION NOTE:", ln=True)
+    pdf.set_font("Arial", 'I', 10)
+    pdf.multi_cell(0, 6, "Local feature contributions are calculated relative to the dataset mean. A 'Safety Buffer' indicates this applicant outperforms the average applicant in that category.")
+    
+    pdf.ln(3)
+    pdf.set_font("Arial", 'B', 11); pdf.cell(0, 8, "STRATEGIC RECOMMENDATIONS:", ln=True)
+    pdf.set_font("Arial", '', 11)
+    rec_text = "Monitor account liquidity." if "HIGH" in clean_result else "Proceed with standard approval terms."
+    pdf.multi_cell(0, 7, f"- {rec_text}\n- Verify minimum balance stability against reported income.\n- Cross-reference with external credit bureau data for secondary validation.")
+
+    # 6. Signatures
     pdf.ln(10)
-    pdf.set_font("Arial", 'I', 9)
-    pdf.multi_cell(0, 5, "Confidentiality Note: This report uses decision-support logic. Values above 50% on the probability gauge trigger a High Risk classification based on transaction patterns.")
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(95, 10, "__________________________", 0, 0, 'L')
+    pdf.cell(95, 10, "__________________________", 0, 1, 'R')
+    pdf.set_font("Arial", '', 9)
+    pdf.cell(95, 5, "Authorized Risk Officer Signature", 0, 0, 'L')
+    pdf.cell(95, 5, "Assessment Auditor Signature", 0, 1, 'R')
 
-    return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Customer_{cust_idx}_Risk_Report.pdf")
+    # 7. Glossary & Report ID
+    report_id = f"CASE-{cust_idx}-{datetime.now().strftime('%Y%m%d%H%M')}"
+    pdf.ln(10); pdf.set_font("Arial", 'I', 8); pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 10, f"Report ID: {report_id} | Confidential Proprietary Algorithmic Insight", ln=True, align='C')
 
+    return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Case_Report_Cust_{cust_idx}.pdf")
+    
 @app.callback(
     Output("confusion-matrix-plot", "figure"),
     Output("classification-report-text", "children"),
