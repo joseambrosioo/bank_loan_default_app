@@ -878,12 +878,26 @@ def update_explanation(cust_idx, selected_model):
     prevent_initial_call=True,
 )
 def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
-    clean_result = str(result_text).replace("✅", "").replace("⚠️", "").strip()
+     # 1. Consensus Logic (The Disagreement Check)
+    main_pred = trained_models[model_name].predict(
+        X_scaled_test.iloc[cust_idx].values.reshape(1, -1) if model_name in ['SVM', 'Logistic Regression'] else X_test.iloc[cust_idx:cust_idx+1]
+    )[0]
     
+    all_preds = []
+    for name, m in trained_models.items():
+        p = m.predict(X_scaled_test.iloc[cust_idx].values.reshape(1, -1) if name in ['SVM', 'Logistic Regression'] else X_test.iloc[cust_idx:cust_idx+1])[0]
+        all_preds.append(p)
+    
+    agreement_count = all_preds.count(main_pred)
+    total_models = len(trained_models)
+    has_disagreement = agreement_count < total_models
+
+    # 2. PDF Initialization
+    clean_result = str(result_text).replace("✅", "").replace("⚠️", "").strip()
     pdf = FPDF()
     pdf.add_page()
     
-    # 1. Header & Logo
+    # Header & Logo logic
     try: pdf.image('logo.png', x=10, y=8, w=30)
     except:
         pdf.set_font("Arial", 'B', 12)
@@ -892,9 +906,20 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
     pdf.set_xy(45, 10)
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(0, 10, "INDIVIDUAL LOAN RISK CASE REPORT", ln=True)
-    pdf.set_xy(45, 18)
     pdf.set_font("Arial", '', 10)
+    pdf.set_xy(45, 18)
     pdf.cell(0, 10, f"Assessment Date: {datetime.now().strftime('%B %d, %Y - %H:%M:%S')}", ln=True)
+
+    # 3. Disagreement Warning Block
+    if has_disagreement:
+        pdf.set_xy(10, 32)
+        pdf.set_fill_color(255, 230, 230) # Soft Red
+        pdf.set_text_color(200, 0, 0)
+        pdf.set_font("Arial", 'B', 11)
+        pdf.cell(0, 10, f" WARNING: MODEL DISAGREEMENT DETECTED ({agreement_count}/{total_models} models agree)", border=1, ln=1, fill=True)
+        pdf.set_text_color(0, 0, 0)
+    else:
+        pdf.ln(10)
 
     # 2. Executive Summary Block
     pdf.set_xy(10, 35)
@@ -959,6 +984,7 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
     pdf.cell(0, 10, f"Report ID: {report_id} | Confidential Proprietary Algorithmic Insight", ln=True, align='C')
 
     return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Case_Report_Cust_{cust_idx}.pdf")
+
     
 @app.callback(
     Output("confusion-matrix-plot", "figure"),
