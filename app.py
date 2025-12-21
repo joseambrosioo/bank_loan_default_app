@@ -465,7 +465,10 @@ simulate_tab = html.Div([
             dbc.ButtonGroup([
                 dbc.Button("💾 Save Scenario", id="btn-save-scenario", color="primary", className="me-2"),
                 dbc.Button("🗑️ Clear History", id="btn-clear-history", color="light", outline=True),
+                dbc.Button("📥 Download Comparison (CSV)", id="btn-download-scenarios", color="dark", outline=True),
             ], className="mt-2 w-100"),
+
+            dcc.Download(id="download-scenarios-csv"), # Component to handle the file transfer
             
             # Audit Section
             dbc.Accordion([
@@ -1167,6 +1170,27 @@ def manage_scenarios(n_save, n_clear, current_data, bal, min_bal, amt, low_freq,
 )
 def update_table(data):
     return data
+
+@app.callback(
+    Output("download-scenarios-csv", "data"),
+    Input("btn-download-scenarios", "n_clicks"),
+    State("scenario-storage", "data"),
+    prevent_initial_call=True
+)
+def download_scenario_history(n_clicks, data):
+    if not data or len(data) == 0:
+        return None
+    
+    # Convert the list of dictionaries (from dcc.Store) to a DataFrame
+    df_download = pd.DataFrame(data)
+    
+    # Rename columns for a professional look in the CSV
+    df_download.columns = [
+        "Scenario ID", "Risk Probability", "Avg Balance", 
+        "Min Balance", "Loan Principal", "Low Bal Freq", "Penalty Total"
+    ]
+    
+    return dcc.send_data_frame(df_download.to_csv, "Simulated_Risk_Scenarios.csv", index=False)
     
 if __name__ == "__main__":
     app.run(debug=True)
