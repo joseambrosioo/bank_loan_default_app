@@ -461,12 +461,6 @@ simulate_tab = html.Div([
                            marks={0: '0', 5000: '5k'}, tooltip={"placement": "bottom"}),
             ], className="mb-4"),
 
-            html.Div([
-                html.Label([html.B("Withdrawal/Deposit Ratio: "), html.Span(id="val-ratio")]),
-                dcc.Slider(id='sim-wd-ratio', min=0.1, max=5.0, step=0.1, value=1.0, 
-                           marks={0.1: '0.1', 5: '5.0'}, tooltip={"placement": "bottom"}),
-            ], className="mb-4"),
-
             # Action Buttons
             dbc.ButtonGroup([
                 dbc.Button("💾 Save Scenario", id="btn-save-scenario", color="primary", className="me-2"),
@@ -1038,7 +1032,6 @@ def download_dictionary(n_clicks):
      Output("val-amount", "children"),
      Output("val-months", "children"),
      Output("val-penalty", "children"),
-     Output("val-ratio", "children"),
      Output("val-payments", "children"), # New
      Output("val-low-freq", "children")], # New
     [Input('sim-balance', 'value'), 
@@ -1046,12 +1039,11 @@ def download_dictionary(n_clicks):
      Input('sim-amount', 'value'), 
      Input('sim-months-active', 'value'),
      Input('sim-penalty', 'value'),     
-     Input('sim-low-freq', 'value'),
-     Input('sim-wd-ratio', 'value'),   
+     Input('sim-low-freq', 'value'),  
      Input('sim-payments', 'value')],  
     State("explain-model-dropdown", "value")
 )
-def update_simulator(bal, min_bal, amt, months, penalty, freq, ratio, pay, model_name):
+def update_simulator(bal, min_bal, amt, months, penalty, freq, pay, model_name):
     # 1. Start with the baseline (mean values of the training set)
     row = pd.DataFrame(X_train.mean().values.reshape(1, -1), columns=X_train.columns)
     
@@ -1076,8 +1068,6 @@ def update_simulator(bal, min_bal, amt, months, penalty, freq, ratio, pay, model
             row[col] = freq; matched = True
         elif 'sankc' in c_low or 'penalty' in c_low: 
             row[col] = penalty; matched = True
-        elif any(x in c_low for x in ['ratio', 'wd_', 'withdrawal_deposit']): 
-            row[col] = ratio; matched = True
         elif 'payments' in c_low or 'installment' in c_low: 
             row[col] = pay; matched = True
             
@@ -1121,7 +1111,6 @@ def update_simulator(bal, min_bal, amt, months, penalty, freq, ratio, pay, model
     disp_amt = f"${amt:,.0f}"
     disp_mon = f"{months} Months"
     disp_pen = f"${penalty:,.0f}"
-    disp_rat = f"{ratio:.1f}x"
 
     # Return 2 extra values at the end:
     disp_pay = f"${pay:,.0f}"
@@ -1129,7 +1118,7 @@ def update_simulator(bal, min_bal, amt, months, penalty, freq, ratio, pay, model
     
     # Return everything to the UI
     return (fig, status_msg, audit_content, 
-            disp_bal, disp_min, disp_amt, disp_mon, disp_pen, disp_rat, 
+            disp_bal, disp_min, disp_amt, disp_mon, disp_pen, 
             disp_pay, disp_freq)
    
 @app.callback(
