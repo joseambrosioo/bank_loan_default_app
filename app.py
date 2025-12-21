@@ -332,7 +332,7 @@ analyze_tab = html.Div(
 # --- 4. EXPLAIN Tab ---
 explain_tab = html.Div(
     children=[
-        html.H4(["🔍 ", html.B("EXPLAIN"), " — Individual Risk Drivers"], className="mt-4"),
+        html.H4(["🔍 ", html.B("EXPLAIN"), " — Individual Loan Risk Drivers"], className="mt-4"),
         html.P("Compare model predictions and see which features most influenced that specific result."),
         
         dbc.Row([
@@ -361,7 +361,7 @@ explain_tab = html.Div(
                         # Row for Result Text and Gauge
                         dbc.Row([
                             dbc.Col([
-                                html.H3(id="prediction-result-text", className="text-center mb-0"),
+                                html.H3(id="prediction-result-text", className="text-center mb-2"),
                                 html.Div(id="consensus-alert-container")
                             ], md=6, className="d-flex flex-column justify-content-center"),
                             dbc.Col([
@@ -405,7 +405,7 @@ explain_tab = html.Div(
 
 # --- 5. SIMULATE Tab (FIXED & CLEAN) ---
 simulate_tab = html.Div([
-    html.H4(["🧪 ", html.B("SIMULATE"), " — Risk Scenario Builder"], className="mt-4"),
+    html.H4(["🧪 ", html.B("SIMULATE"), " — Loan Risk Scenario Builder"], className="mt-4"),
     html.P("Adjust values using the sliders. Labels will show the exact values selected."),
     
     dbc.Row([
@@ -479,23 +479,37 @@ simulate_tab = html.Div([
         
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader(html.B("Simulated Risk Output")),
+                dbc.CardHeader(html.B("Simulated Loan Risk Output & Policy")),
                 dbc.CardBody([
+                    # NEW: Risk Tolerance Slider
+                    html.Label([html.B("Set Loan Risk Tolerance Threshold: "), html.Span(id="val-threshold")]),
+                    dcc.Slider(id='sim-threshold', min=10, max=90, step=5, value=70, 
+                               marks={10: '10%', 50: '50%', 90: '90%'}, tooltip={"placement": "top"}),
+                    html.P("Probabilities above this % will be flagged as HIGH RISK.", className="text-muted small mb-4"),
+                    
                     dcc.Graph(id="sim-gauge", style={"height": "250px"}),
                     html.Div(id="sim-outcome-text", className="text-center mb-3 h4"),
                 ])
-            ], className="shadow-sm sticky-top", style={"top": "20px"})
+            ], className="shadow-sm sticky-top", style={"top": "20px"}),
+            
+            # dbc.Card([
+            #     dbc.CardHeader(html.B("Simulated Risk Output")),
+            #     dbc.CardBody([
+            #         dcc.Graph(id="sim-gauge", style={"height": "250px"}),
+            #         html.Div(id="sim-outcome-text", className="text-center mb-3 h4"),
+            #     ])
+            # ], className="shadow-sm sticky-top", style={"top": "20px"})
         ], md=5)
     ]),
 
     # History Table
     html.Hr(className="my-5"),
-    html.H5("📊 Saved Scenario History"),
+    html.H5("📊 Saved Loan Scenario History"),
     dash_table.DataTable(
         id='scenario-history-table',
         columns=[
             {"name": "Scenario Name", "id": "name"},
-            {"name": "Risk Score", "id": "score"},
+            {"name": "Loan Risk Score", "id": "score"},
             {"name": "Balance", "id": "balance"},
             {"name": "Min Bal", "id": "min_bal"},
             {"name": "Loan Amt", "id": "amount"},
@@ -708,8 +722,8 @@ def generate_bank_report(n_clicks, selected_model):
     pdf.multi_cell(0, 7, f"The {selected_model} model serves as the primary decision-support tool for risk assessment, utilizing transaction patterns to predict default probability.")
     pdf.ln(5)
 
-    # Risk Drivers
-    pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, "KEY RISK DRIVERS:", ln=True); pdf.set_font("Arial", '', 11)
+    # Loan Risk Drivers
+    pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, "KEY LOAN RISK DRIVERS:", ln=True); pdf.set_font("Arial", '', 11)
     for i, feat in enumerate(top_features, 1): pdf.cell(0, 7, f"{i}. {feat}", ln=True)
     pdf.ln(5)
 
@@ -880,7 +894,7 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
     pdf.ln(5)
     
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, "TOP MATHEMATICAL RISK DRIVERS:", ln=True)
+    pdf.cell(0, 10, "TOP MATHEMATICAL LOAN RISK DRIVERS:", ln=True)
     pdf.set_font("Arial", '', 11)
     
     model = trained_models[model_name]
@@ -1036,17 +1050,19 @@ def download_dictionary(n_clicks):
      Output("val-months", "children"),
      Output("val-penalty", "children"),
      Output("val-payments", "children"), # New
-     Output("val-low-freq", "children")], # New
+     Output("val-low-freq", "children"),
+     Output("val-threshold", "children")], # New Output], # New
     [Input('sim-balance', 'value'), 
      Input('sim-min-balance', 'value'),
      Input('sim-amount', 'value'), 
      Input('sim-months-active', 'value'),
      Input('sim-penalty', 'value'),     
      Input('sim-low-freq', 'value'),  
-     Input('sim-payments', 'value')],  
+     Input('sim-payments', 'value'),
+     Input('sim-threshold', 'value')], # New Input],  
     State("explain-model-dropdown", "value")
 )
-def update_simulator(bal, min_bal, amt, months, penalty, freq, pay, model_name):
+def update_simulator(bal, min_bal, amt, months, penalty, freq, pay, threshold, model_name):
     # 1. Start with the baseline (mean values of the training set)
     row = pd.DataFrame(X_train.mean().values.reshape(1, -1), columns=X_train.columns)
     
@@ -1083,27 +1099,30 @@ def update_simulator(bal, min_bal, amt, months, penalty, freq, pay, model_name):
     input_data = sc.transform(row) if model_name in ['SVM', 'Logistic Regression'] else row
     prob = model.predict_proba(input_data)[0][1] if hasattr(model, 'predict_proba') else 0.5
     
-    # 5. Build the Gauge Figure
+    # 5. Build the Gauge Figure with Dynamic Steps
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=prob*100,
         number={'suffix': "%", 'valueformat':'.1f'},
         gauge={'axis': {'range': [0, 100]}, 
                'bar': {'color': '#2c3e50'},
                'steps': [
-                   {'range': [0, 30], 'color': "#27ae60"},
-                   {'range': [30, 85], 'color': "#f1c40f"},
-                   {'range': [85, 100], 'color': "#e74c3c"}
-               ]}
+                   {'range': [0, threshold * 0.5], 'color': "#27ae60"},  # Safe
+                   {'range': [threshold * 0.5, threshold], 'color': "#f1c40f"}, # Warning
+                   {'range': [threshold, 100], 'color': "#e74c3c"}      # Danger (Now dynamic!)
+               ],
+               'threshold': {
+                   'line': {'color': "black", 'width': 4},
+                   'thickness': 0.75,
+                   'value': threshold
+               }}
     ))
     fig.update_layout(height=250, margin=dict(t=50, b=0))
     
-    # 6. Formatting Status and Display Strings
-    if prob >= 0.95:
-        status_msg = html.Span("🚨 TOTAL RISK SATURATION", className="text-danger")
-    elif prob > 0.7:
-        status_msg = html.Span("🔴 HIGH RISK", className="text-danger")
+    # 6. Formatting Status based on Custom Threshold
+    if (prob * 100) >= threshold:
+        status_msg = html.Span(f"🔴 ABOVE THRESHOLD: HIGH RISK", className="text-danger")
     else:
-        status_msg = html.Span("🟢 LOW RISK", className="text-success")
+        status_msg = html.Span(f"🟢 BELOW THRESHOLD: APPROVED", className="text-success")
 
     debug_header = html.B("🛠️ Model Data Audit (Live Mapping):")
     audit_content = [debug_header] + (audit_trail if audit_trail else [html.Div("⚠️ No columns matched!")])
@@ -1122,7 +1141,7 @@ def update_simulator(bal, min_bal, amt, months, penalty, freq, pay, model_name):
     # Return everything to the UI
     return (fig, status_msg, audit_content, 
             disp_bal, disp_min, disp_amt, disp_mon, disp_pen, 
-            disp_pay, disp_freq)
+            disp_pay, disp_freq, f"{threshold}%")
    
 @app.callback(
     Output("scenario-storage", "data"),
