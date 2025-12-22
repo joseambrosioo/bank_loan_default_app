@@ -216,22 +216,31 @@ analyze_tab = html.Div(
                         html.P(
                             ["The EDA section helps us understand the key characteristics of our data before starting the modeling. It's like checking the ingredients before cooking."]
                         ),
-                        html.H5("Default Distribution", className="mt-4"),
-                        html.P(
-                            ["The pie chart below shows that our data is ", html.B("imbalanced"), 
-                            "—only a small percentage of customers actually defaulted. This is common in banking data, which is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate but useless for identifying at-risk customers. We aren't just looking at percentages; we are seeing a critical business problem: ", html.B("class imbalance"), 
-                            ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means a model could achieve high accuracy simply by predicting 'No Default' all the time. That is why we cannot rely solely on accuracy and need more robust metrics, which we will find in the 'Model Performance' section."]
-                        ),
-                        dcc.Graph(
-                            id="status-pie-chart",
-                            figure=go.Figure(
-                                data=[go.Pie(labels=df_for_plotting["status"].value_counts().keys().tolist(),
-                                             values=df_for_plotting["status"].value_counts().values.tolist(),
-                                             marker=dict(colors=['#1f77b4', '#ff7f0e'], line=dict(color="white", width=1.3)),
-                                             hoverinfo="label+percent", hole=0.5)],
-                                layout=go.Layout(title="Loan Default Distribution (0=No Default, 1=Default)", height=400, margin=dict(t=50, b=50))
-                            )
-                        ),
+                        dbc.Row([
+                            dbc.Col(
+                                dcc.Graph(
+                                    id="status-pie-chart",
+                                    figure=go.Figure(
+                                        data=[go.Pie(labels=df_for_plotting["status"].value_counts().keys().tolist(),
+                                                    values=df_for_plotting["status"].value_counts().values.tolist(),
+                                                    marker=dict(colors=['#1f77b4', '#ff7f0e'], line=dict(color="white", width=1.3)),
+                                                    hoverinfo="label+percent", hole=0.5)],
+                                        layout=go.Layout(title="Loan Default Distribution (0=No Default, 1=Default)", height=400, margin=dict(t=50, b=50))
+                                    )
+                                ),
+                                md=6, width=12 # md=6 makes it half-width on desktop, width=12 is full-width on mobile
+                            ),
+                            dbc.Col(
+                                html.Div([
+                                    html.H5("Default Distribution", className="mt-4"),
+                                    html.P(
+                                        ["The pie chart on the left shows that our data is ", html.B("imbalanced"), 
+                                        "—only a small percentage of customers actually defaulted. This is common in banking data, which is why a high accuracy score alone can be misleading. A model that predicts no one will default would still be ~90% accurate but useless for identifying at-risk customers. We aren't just looking at percentages; we are seeing a critical business problem: ", html.B("class imbalance"), 
+                                        ". The large slice for 'No Default' (status 0) and the tiny slice for 'Default' (status 1) means a model could achieve high accuracy simply by predicting 'No Default' all the time. That is why we cannot rely solely on accuracy and need more robust metrics, which we will find in the 'Model Performance' section."]
+                                    ),
+                                ]), md=6
+                            ),
+                        ]),
                         html.H5("Default Rate by Age Group", className="mt-4"),
                         html.P(
                             ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age ranges are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default', we can see the proportion of each outcome within each age group. We are looking for significant differences in the default rate between age groups. Based on the data, the ", html.B("45-50 age group is the most prone to default"), ", with a slightly higher percentage of defaults compared to other age groups."]
