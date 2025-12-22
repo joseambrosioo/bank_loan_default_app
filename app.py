@@ -684,13 +684,15 @@ app.layout = dbc.Container(
         header,
         dbc.Tabs(
             [
-                dbc.Tab(ask_tab, label="Ask"),
-                dbc.Tab(prepare_tab, label="Prepare"),
-                dbc.Tab(analyze_tab, label="Analyze"),
-                dbc.Tab(explain_tab, label="Explain"),
-                dbc.Tab(simulate_tab, label="Simulate"),
-                dbc.Tab(act_tab, label="Act"),
-            ]
+                dbc.Tab(ask_tab, label="Ask", tab_id="tab-ask"),
+                dbc.Tab(prepare_tab, label="Prepare", tab_id="tab-prepare"),
+                dbc.Tab(analyze_tab, label="Analyze", tab_id="tab-analyze"),
+                dbc.Tab(explain_tab, label="Explain", tab_id="tab-explain"),
+                dbc.Tab(simulate_tab, label="Simulate", tab_id="tab-simulate"), # Tab you want
+                dbc.Tab(act_tab, label="Act", tab_id="tab-act"),
+            ],
+            id="tabs",
+            active_tab="tab-simulate", # This forces 'Simulate' to open first
         ),
     ],
     fluid=True,
