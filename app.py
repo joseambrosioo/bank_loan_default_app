@@ -272,17 +272,6 @@ analyze_tab = html.Div(
                         html.P(
                             ["This section is about evaluating our models to choose the best one for the task. We aren't just looking for a 'high score,' but a model that is genuinely good at detecting high-risk customers."]
                         ),
-                        html.H5("Model Performance Metrics", className="mt-4"),
-                        html.P(
-                            ["To truly evaluate our models, we focus on several key metrics beyond simple accuracy:",
-                             html.Ul([
-                                 html.Li([html.B("Precision:"), " Think of Precision as the cost of a false alarm. If our model has high precision, the people it flags for follow-up are very likely actual defaulters. Of the customers we predicted would default, how many actually did? High precision is good for avoiding false alarms."]),
-                                 html.Li([html.B("Recall:"), " Think of Recall as the cost of a missed warning. If our model has high recall, it is very good at finding most people who will default, so we don't miss a high-risk customer. Of all the customers who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk customers as possible."]),
-                                 html.Li([html.B("F1-Score:"), " A balance between precision and recall, providing a single metric to compare models. This is the harmonic mean of precision and recall. It is a single number that helps us compare models when both precision and recall are important."]),
-                                 html.Li([html.B("ROC-AUC:"), " This is a powerful summary metric. It measures the model's ability to distinguish between the two classes (defaulters vs. non-defaulters). A score closer to 1.0 is better."])
-                             ])
-                            ]
-                        ),
                         html.P([
                             "The ", html.B("Random Forest"), ", ", html.B("Decision Tree"), ", ",
                             html.B("Gradient Boosting"), ", and ", html.B("SVM"), 
@@ -316,21 +305,10 @@ analyze_tab = html.Div(
                             color="info",
                             className="mt-4 shadow-sm",
                         ),
-
-                        html.H6("Confusion Matrix", className="mt-4"),
-                        html.P(
-                            ["A confusion matrix is a table that breaks down our model's predictions into four categories:", 
-                             html.Ul([
-                                 html.Li([html.B("True Positives (TP):"), " Correctly predicted defaulters."]),
-                                 html.Li([html.B("True Negatives (TN):"), " Correctly predicted non-defaulters."]),
-                                 html.Li([html.B("False Positives (FP):"), " Incorrectly predicted defaulters (Type I error). These are the 'false alarms'."]),
-                                 html.Li([html.B("False Negatives (FN):"), " Incorrectly predicted non-defaulters (Type II error). These are the 'missed warnings' that a bank wants to avoid at all costs, as they represent a potential financial loss."])
-                             ])
-                            ]
-                        ),
                         dbc.Row([
                             dbc.Col(
                                 html.Div([
+                                    html.H5("Confusion Matrix", className="mt-4"),
                                     html.H6("Select a Model:"),
                                     dcc.Dropdown(
                                         id="model-dropdown",
@@ -343,8 +321,39 @@ analyze_tab = html.Div(
                             ),
                             dbc.Col(
                                 html.Div([
-                                    html.H6("Model Performance Report:"),
+                                    html.H5("Confusion Matrix Categories", className="mt-4"),
+                                    html.P(
+                                        ["A confusion matrix is a table that breaks down our model's predictions into four categories:", 
+                                        html.Ul([
+                                            html.Li([html.B("True Positives (TP):"), " Correctly predicted defaulters."]),
+                                            html.Li([html.B("True Negatives (TN):"), " Correctly predicted non-defaulters."]),
+                                            html.Li([html.B("False Positives (FP):"), " Incorrectly predicted defaulters (Type I error). These are the 'false alarms'."]),
+                                            html.Li([html.B("False Negatives (FN):"), " Incorrectly predicted non-defaulters (Type II error). These are the 'missed warnings' that a bank wants to avoid at all costs, as they represent a potential financial loss."])
+                                        ])
+                                        ]
+                                    ),
+                                ]), md=6
+                            ),
+                        ]),
+                        dbc.Row([
+                            dbc.Col(
+                                html.Div([
+                                    html.H5("Model Performance Report"),
                                     html.Pre(id="classification-report-text"),
+                                ]), md=6
+                            ),
+                            dbc.Col(
+                                html.Div([
+                                    html.H5("Model Performance Metrics", className="mt-4"),
+                                    html.P(
+                                        ["To truly evaluate our models, we focus on several key metrics beyond simple accuracy:",
+                                        html.Ul([
+                                            html.Li([html.B("Precision:"), " Think of Precision as the cost of a false alarm. If our model has high precision, the people it flags for follow-up are very likely actual defaulters. Of the customers we predicted would default, how many actually did? High precision is good for avoiding false alarms."]),
+                                            html.Li([html.B("Recall:"), " Think of Recall as the cost of a missed warning. If our model has high recall, it is very good at finding most people who will default, so we don't miss a high-risk customer. Of all the customers who defaulted, how many did our model successfully identify? High recall is crucial for a bank to catch as many at-risk customers as possible."]),
+                                            html.Li([html.B("F1-Score:"), " A balance between precision and recall, providing a single metric to compare models. This is the harmonic mean of precision and recall. It is a single number that helps us compare models when both precision and recall are important."]),
+                                            html.Li([html.B("ROC-AUC:"), " This is a powerful summary metric. It measures the model's ability to distinguish between the two classes (defaulters vs. non-defaulters). A score closer to 1.0 is better."])
+                                        ])
+                                    ]),
                                 ]), md=6
                             ),
                         ]),
