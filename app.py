@@ -241,37 +241,45 @@ analyze_tab = html.Div(
                                 ]), md=6
                             ),
                         ]),
-                        html.H5("Default Rate by Age Group", className="mt-4"),
-                        html.P(
-                            ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age ranges are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default', we can see the proportion of each outcome within each age group. We are looking for significant differences in the default rate between age groups. Based on the data, the ", html.B("45-50 age group is the most prone to default"), ", with a slightly higher percentage of defaults compared to other age groups."]
-                        ),
-                        dcc.Graph(
-                            id="age-default-plot",
-                            figure=go.Figure(
-                                data=[go.Bar(
-                                    x=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[0].index,
-                                    y=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[0].values,
-                                    name='No Default',
-                                    marker_color='#1f77b4'
-                                ), go.Bar(
-                                    x=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[1].index,
-                                    y=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[1].values,
-                                    name='Default',
-                                    marker_color='#ff7f0e'
-                                )],
-                                layout=go.Layout(
-                                    barmode='stack',
-                                    title="Percentage of Default by Age Group",
-                                    yaxis_title="Percentage",
-                                    xaxis_title="Age Group",
-                                    height=450, margin=dict(t=50, b=50)
-                                )
-                            )
-                        ),
-                        html.H5("The Importance of Specific Transaction Data", className="mt-4"),
-                        html.P(
-                            ["Our analysis highlights the value of focusing on ", html.B("specific and granular data"), ". In this project, we created detailed features from raw transaction data, such as `avg_balance_before_loan` and `times_balance_below_5K`. These are much more informative than a simple total customer transaction value because they capture specific behaviors—like frequent overdrafts or low balances—that are strong indicators of financial stability and the likelihood of default. A simple 'total' metric would hide these crucial risk signals, making it harder to accurately predict customer risk."]
-                        ),
+                        dbc.Row([
+                            dbc.Col(
+                                dcc.Graph(
+                                    id="age-default-plot",
+                                    figure=go.Figure(
+                                        data=[go.Bar(
+                                            x=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[0].index,
+                                            y=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[0].values,
+                                            name='No Default',
+                                            marker_color='#1f77b4'
+                                        ), go.Bar(
+                                            x=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[1].index,
+                                            y=df_for_plotting.groupby('age_bin')['status'].value_counts(normalize=True).unstack()[1].values,
+                                            name='Default',
+                                            marker_color='#ff7f0e'
+                                        )],
+                                        layout=go.Layout(
+                                            barmode='stack',
+                                            title="Percentage of Default by Age Group",
+                                            yaxis_title="Percentage",
+                                            xaxis_title="Age Group",
+                                            height=450, margin=dict(t=50, b=50)
+                                        )
+                                    )
+                                ), md=6
+                            ),
+                            dbc.Col(
+                                html.Div([
+                                    html.H5("Default Rate by Age Group", className="mt-4"),
+                                    html.P(
+                                        ["This stacked bar chart shows the percentage of defaulters and non-defaulters across different age groups. It helps us see if certain age ranges are more prone to default. The visualization reveals that while the total number of loans varies by age, the percentage of defaults within each group is relatively similar. By stacking the bars for 'No Default' and 'Default', we can see the proportion of each outcome within each age group. We are looking for significant differences in the default rate between age groups. Based on the data, the ", html.B("45-50 age group is the most prone to default"), ", with a slightly higher percentage of defaults compared to other age groups."]
+                                    ),
+                                    html.H5("The Importance of Specific Transaction Data", className="mt-4"),
+                                    html.P(
+                                        ["Our analysis highlights the value of focusing on ", html.B("specific and granular data"), ". In this project, we created detailed features from raw transaction data, such as `avg_balance_before_loan` and `times_balance_below_5K`. These are much more informative than a simple total customer transaction value because they capture specific behaviors—like frequent overdrafts or low balances—that are strong indicators of financial stability and the likelihood of default. A simple 'total' metric would hide these crucial risk signals, making it harder to accurately predict customer risk."]
+                                    ),
+                                ]), md=6
+                            ),
+                        ])
                     ], className="p-4"
                 )
             ]),
@@ -295,25 +303,6 @@ analyze_tab = html.Div(
                             ". This makes it less reliable than the other models that achieved perfect detection."
                         ]),
 
-                        dbc.Alert(
-                            [
-                                html.H5("💡 A Note on Performance & Integrity", className="alert-heading"),
-                                html.P(
-                                    "The exceptional performance (100% Accuracy) across several models indicates a very "
-                                    "strong signal within the engineered features. We have conducted rigorous "
-                                    "cross-validation to ensure these results represent genuine predictive power "
-                                    "rather than data leakage (accidentally including the answer in the training data)."
-                                ),
-                                html.Hr(),
-                                html.P(
-                                    "This suggests that features like account balance and transaction frequency are "
-                                    "highly definitive indicators of loan default risk in this specific dataset.",
-                                    className="mb-0",
-                                ),
-                            ],
-                            color="info",
-                            className="mt-4 shadow-sm",
-                        ),
                         dbc.Row([
                             dbc.Col(
                                 html.Div([
@@ -331,23 +320,42 @@ analyze_tab = html.Div(
                             dbc.Col(
                                 html.Div([
                                     html.H5("Confusion Matrix Categories", className="mt-4"),
-                                    html.P(
-                                        ["A confusion matrix is a table that breaks down our model's predictions into four categories:", 
+                                    html.Div([ # Changed html.P to html.Div to properly contain the list
+                                        "A confusion matrix is a table that breaks down our model's predictions into four categories:",
                                         html.Ul([
                                             html.Li([html.B("True Positives (TP):"), " Correctly predicted defaulters."]),
                                             html.Li([html.B("True Negatives (TN):"), " Correctly predicted non-defaulters."]),
-                                            html.Li([html.B("False Positives (FP):"), " Incorrectly predicted defaulters (Type I error). These are the 'false alarms'."]),
-                                            html.Li([html.B("False Negatives (FN):"), " Incorrectly predicted non-defaulters (Type II error). These are the 'missed warnings' that a bank wants to avoid at all costs, as they represent a potential financial loss."])
-                                        ])
-                                        ]
+                                            html.Li([html.B("False Positives (FP):"), " Incorrectly predicted defaulters (Type I error)."]),
+                                            html.Li([html.B("False Negatives (FN):"), " Incorrectly predicted non-defaulters (Type II error)."])
+                                        ], className="mt-2")
+                                    ]),
+                                    dbc.Alert(
+                                        [
+                                            html.H5("💡 A Note on Performance & Integrity", className="alert-heading"),
+                                            html.P(
+                                                "The exceptional performance (100% Accuracy) across several models indicates a very "
+                                                "strong signal within the engineered features. We have conducted rigorous "
+                                                "cross-validation to ensure these results represent genuine predictive power "
+                                                "rather than data leakage (accidentally including the answer in the training data)."
+                                            ),
+                                            html.Hr(),
+                                            html.P(
+                                                "This suggests that features like account balance and transaction frequency are "
+                                                "highly definitive indicators of loan default risk in this specific dataset.",
+                                                className="mb-0",
+                                            ),
+                                        ],
+                                        color="info",
+                                        className="mt-4 shadow-sm",
                                     ),
-                                ]), md=6
+                                ]), 
+                                md=6
                             ),
                         ]),
                         dbc.Row([
                             dbc.Col(
                                 html.Div([
-                                    html.H5("Model Performance Report"),
+                                    html.H5("Model Performance Report", className="mt-4"),
                                     html.Pre(id="classification-report-text"),
                                 ]), md=6
                             ),
@@ -367,15 +375,35 @@ analyze_tab = html.Div(
                             ),
                         ]),
                         html.Hr(),
-                        html.H5("Feature Importance", className="mt-4"),
-                        html.P(
-                            ["This bar chart shows us which features the selected model relied on most to make its predictions. We are seeing the model's 'thought process.' The taller the bar, the more influential that feature was. In this case, the two most important features were ", html.B("`avg_balance_before_loan`"), " and ", html.B("`avg_amount_trans_before_loan`"), ". This is a critical insight because it validates the data preparation process—our work on feature engineering paid off, creating meaningful signals for the model."]
-                        ),
-                        dcc.Graph(id="feature-importance-plot"),
-                        html.Hr(),
-                        html.H5("Receiver Operating Characteristic (ROC) Curve", className="mt-4"),
-                        html.P(id="roc-curve-description"),
-                        dcc.Graph(id="roc-curve-plot"),
+                        dbc.Row([
+                            # Left Column: Feature Importance
+                            dbc.Col(
+                                html.Div([
+                                    html.H5("Feature Importance", className="mb-2"), # Added header above graph
+                                    dcc.Graph(id="feature-importance-plot"),
+                                    html.Div([
+                                        html.P([
+                                            "This bar chart shows us which features the selected model relied on most to make its predictions. "
+                                            "We are seeing the model's 'thought process.' The taller the bar, the more influential that feature was. "
+                                            "In this case, the two most important features were ", 
+                                            html.B("avg_balance_before_loan"), " and ", html.B("avg_amount_trans_before_loan"), 
+                                            ". This is a critical insight because it validates our feature engineering."
+                                        ], className="mt-3"),
+                                    ]),
+                                ]), md=6
+                            ), 
+
+                            # Right Column: ROC Curve
+                            dbc.Col(
+                                html.Div([
+                                    html.H5("Receiver Operating Characteristic (ROC) Curve", className="mb-2"),
+                                    dcc.Graph(id="roc-curve-plot"), # Moved graph below header for consistency
+                                    html.Div([
+                                        html.P(id="roc-curve-description", className="mt-3"),
+                                    ]),
+                                ]), md=6
+                            )
+                        ], className="mt-4") # Added top margin to the whole row
                     ], className="p-4"
                 )
             ])
