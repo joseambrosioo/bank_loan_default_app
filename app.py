@@ -874,7 +874,23 @@ def generate_bank_report(n_clicks, selected_model):
 
     # 3. Export to Dash
     # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"{report_id}.pdf")
-    return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Bank_Risk_Report_{selected_model}.pdf")
+    # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Bank_Risk_Report_{selected_model}.pdf")
+    
+    # pdf2 returns a bytearray by default when no dest is provided
+    pdf_output = pdf.output() 
+    
+    # 1. Output as a string
+    pdf_str = pdf.output(dest='S')
+    
+    # 2. Convert that string into actual bytes (The missing step!)
+    pdf_bytes = bytes(pdf_str, 'latin-1')
+
+    # 3. Define the writer using the bytes
+    def write_pdf(bytes_io):
+        bytes_io.write(pdf_bytes)
+
+    # 4. Send to browser
+    return dcc.send_bytes(write_pdf, f"Bank_Risk_Report_{selected_model}.pdf")
 
 @app.callback(
     Output("shap-waterfall-plot", "figure"),
@@ -1062,7 +1078,23 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
     pdf.ln(10); pdf.set_font("Arial", 'I', 8); pdf.set_text_color(150, 150, 150)
     pdf.cell(0, 10, f"Report ID: {report_id} | Confidential Proprietary Algorithmic Insight", ln=True, align='C')
 
-    return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Case_Report_Cust_{cust_idx}.pdf")
+    # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Case_Report_Cust_{cust_idx}.pdf")
+
+    # pdf2 returns a bytearray by default when no dest is provided
+    pdf_output = pdf.output() 
+    
+    # 1. Output as a string
+    pdf_str = pdf.output(dest='S')
+    
+    # 2. Convert that string into actual bytes (The missing step!)
+    pdf_bytes = bytes(pdf_str, 'latin-1')
+
+    # 3. Define the writer using the bytes
+    def write_pdf(bytes_io):
+        bytes_io.write(pdf_bytes)
+
+    # 4. Send to browser
+    return dcc.send_bytes(write_pdf, f"Case_Report_Cust_{cust_idx}.pdf")
 
     
 @app.callback(
