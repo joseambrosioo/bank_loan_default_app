@@ -892,7 +892,7 @@ def generate_bank_report(n_clicks, selected_model):
         else bytes(pdf_data)
     )
 
-    return dcc.send_bytes(pdf_bytes, f"Bank_Risk_Report_{selected_model}.pdf")
+    return dcc.send_bytes(pdf_bytes, f"Bank_Loan_Risk_Executive_Report_{selected_model}.pdf")
 
 
 @app.callback(
@@ -1092,7 +1092,7 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
         else bytes(pdf_data)
     )
 
-    return dcc.send_bytes(pdf_bytes, f"Case_Report_Cust_{cust_idx}.pdf")
+    return dcc.send_bytes(pdf_bytes, f"Loan_Applicant_Risk_Audit_Report_{cust_idx}.pdf")
 
     
 @app.callback(
