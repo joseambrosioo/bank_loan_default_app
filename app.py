@@ -878,37 +878,15 @@ def generate_bank_report(n_clicks, selected_model):
     
     # pdf2 returns a bytearray by default when no dest is provided
     # 2. Generate raw PDF data
-    raw_pdf_data = pdf.output(dest='S')
+    pdf_data = pdf.output(dest='S')
 
-    # 3. Debugging logs
-    print("Type of raw_pdf_data:", type(raw_pdf_data))
-
-    if raw_pdf_data:
-        print("Length of raw_pdf_data:", len(raw_pdf_data))
-    else:
-        print("raw_pdf_data is EMPTY or None")
-
-    # 4. Safe conversion
-    if isinstance(raw_pdf_data, str):
-        pdf_bytes = raw_pdf_data.encode('latin-1')
-        print("Converted using latin-1 encoding")
-    else:
-        pdf_bytes = raw_pdf_data
-        print("Already bytes, no encoding needed")
-
-    # 5. Final debug check
-    print("Final PDF byte length:", len(pdf_bytes))
-
-    if len(pdf_bytes) == 0:
-        print("ERROR: PDF is empty!")
-
-    print("---- RETURNING FILE ----")
-
-    # 6. Send file to user
-    return dcc.send_bytes(
-        pdf_bytes,
-        f"Bank_Risk_Report_{selected_model}.pdf"
+    pdf_bytes = (
+        pdf_data.encode("latin-1")
+        if isinstance(pdf_data, str)
+        else bytes(pdf_data)
     )
+
+    return dcc.send_bytes(pdf_bytes, f"Bank_Risk_Report_{selected_model}.pdf")
 
 
 @app.callback(
@@ -1100,38 +1078,15 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
     # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Case_Report_Cust_{cust_idx}.pdf")
 
     # pdf2 returns a bytearray by default when no dest is provided
-    # 2. Generate raw PDF data
-    raw_pdf_data = pdf.output(dest='S')
+    pdf_data = pdf.output(dest='S')
 
-    # 3. Debugging logs
-    print("Type of raw_pdf_data:", type(raw_pdf_data))
-
-    if raw_pdf_data:
-        print("Length of raw_pdf_data:", len(raw_pdf_data))
-    else:
-        print("raw_pdf_data is EMPTY or None")
-
-    # 4. Safe conversion
-    if isinstance(raw_pdf_data, str):
-        pdf_bytes = raw_pdf_data.encode('latin-1')
-        print("Converted using latin-1 encoding")
-    else:
-        pdf_bytes = raw_pdf_data
-        print("Already bytes, no encoding needed")
-
-    # 5. Final debug check
-    print("Final PDF byte length:", len(pdf_bytes))
-
-    if len(pdf_bytes) == 0:
-        print("ERROR: PDF is empty!")
-
-    print("---- RETURNING FILE ----")
-
-    # 6. Send file to user
-    return dcc.send_bytes(
-        pdf_bytes,
-        f"Case_Report_Cust_{cust_idx}.pdf"
+    pdf_bytes = (
+        pdf_data.encode("latin-1")
+        if isinstance(pdf_data, str)
+        else bytes(pdf_data)
     )
+
+    return dcc.send_bytes(pdf_bytes, f"Case_Report_Cust_{cust_idx}.pdf")
 
     
 @app.callback(
