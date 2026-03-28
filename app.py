@@ -877,20 +877,39 @@ def generate_bank_report(n_clicks, selected_model):
     # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Bank_Risk_Report_{selected_model}.pdf")
     
     # pdf2 returns a bytearray by default when no dest is provided
-    pdf_output = pdf.output() 
-    
-    # 1. Output as a string
-    pdf_str = pdf.output(dest='S')
-    
-    # 2. Convert that string into actual bytes (The missing step!)
-    pdf_bytes = bytes(pdf_str, 'latin-1')
+    # 2. Generate raw PDF data
+    raw_pdf_data = pdf.output(dest='S')
 
-    # 3. Define the writer using the bytes
-    def write_pdf(bytes_io):
-        bytes_io.write(pdf_bytes)
+    # 3. Debugging logs
+    print("Type of raw_pdf_data:", type(raw_pdf_data))
 
-    # 4. Send to browser
-    return dcc.send_bytes(write_pdf, f"Bank_Risk_Report_{selected_model}.pdf")
+    if raw_pdf_data:
+        print("Length of raw_pdf_data:", len(raw_pdf_data))
+    else:
+        print("raw_pdf_data is EMPTY or None")
+
+    # 4. Safe conversion
+    if isinstance(raw_pdf_data, str):
+        pdf_bytes = raw_pdf_data.encode('latin-1')
+        print("Converted using latin-1 encoding")
+    else:
+        pdf_bytes = raw_pdf_data
+        print("Already bytes, no encoding needed")
+
+    # 5. Final debug check
+    print("Final PDF byte length:", len(pdf_bytes))
+
+    if len(pdf_bytes) == 0:
+        print("ERROR: PDF is empty!")
+
+    print("---- RETURNING FILE ----")
+
+    # 6. Send file to user
+    return dcc.send_bytes(
+        pdf_bytes,
+        f"Bank_Risk_Report_{selected_model}.pdf"
+    )
+
 
 @app.callback(
     Output("shap-waterfall-plot", "figure"),
@@ -1081,20 +1100,38 @@ def download_local_pdf(n_clicks, cust_idx, model_name, result_text):
     # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Case_Report_Cust_{cust_idx}.pdf")
 
     # pdf2 returns a bytearray by default when no dest is provided
-    pdf_output = pdf.output() 
-    
-    # 1. Output as a string
-    pdf_str = pdf.output(dest='S')
-    
-    # 2. Convert that string into actual bytes (The missing step!)
-    pdf_bytes = bytes(pdf_str, 'latin-1')
+    # 2. Generate raw PDF data
+    raw_pdf_data = pdf.output(dest='S')
 
-    # 3. Define the writer using the bytes
-    def write_pdf(bytes_io):
-        bytes_io.write(pdf_bytes)
+    # 3. Debugging logs
+    print("Type of raw_pdf_data:", type(raw_pdf_data))
 
-    # 4. Send to browser
-    return dcc.send_bytes(write_pdf, f"Case_Report_Cust_{cust_idx}.pdf")
+    if raw_pdf_data:
+        print("Length of raw_pdf_data:", len(raw_pdf_data))
+    else:
+        print("raw_pdf_data is EMPTY or None")
+
+    # 4. Safe conversion
+    if isinstance(raw_pdf_data, str):
+        pdf_bytes = raw_pdf_data.encode('latin-1')
+        print("Converted using latin-1 encoding")
+    else:
+        pdf_bytes = raw_pdf_data
+        print("Already bytes, no encoding needed")
+
+    # 5. Final debug check
+    print("Final PDF byte length:", len(pdf_bytes))
+
+    if len(pdf_bytes) == 0:
+        print("ERROR: PDF is empty!")
+
+    print("---- RETURNING FILE ----")
+
+    # 6. Send file to user
+    return dcc.send_bytes(
+        pdf_bytes,
+        f"Case_Report_Cust_{cust_idx}.pdf"
+    )
 
     
 @app.callback(
