@@ -21,6 +21,13 @@ from dash import callback_context
 # Import the new model training class
 from model_trainer import LoanModelTrainer
 
+# 🔥 Warmup once when app starts
+pdf = FPDF()
+pdf.add_page()
+pdf.set_font("Arial", size=12)
+pdf.cell(200, 10, "Warmup", ln=True)
+pdf.output(dest='S')
+
 # --- Data Loading and Model Training ---
 trainer = LoanModelTrainer(
     "dataset/card.asc", "dataset/account.asc", "dataset/disp.asc", 
@@ -877,7 +884,6 @@ def generate_bank_report(n_clicks, selected_model):
     # return dcc.send_bytes(pdf.output(dest='S').encode('latin-1'), f"Bank_Risk_Report_{selected_model}.pdf")
     
     # pdf2 returns a bytearray by default when no dest is provided
-    # 2. Generate raw PDF data
     pdf_data = pdf.output(dest='S')
 
     pdf_bytes = (
